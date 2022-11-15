@@ -1,0 +1,6 @@
+data/*
+!data/annot
+!data/test
+!data/train
+
+logs/*
