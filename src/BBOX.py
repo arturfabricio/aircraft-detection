@@ -10,7 +10,7 @@ import skimage.io
 
 class BBOX():
     def __init__(self, min_x: int, min_y: int, width: int, height: int):
-        self.arr = np.array([min_x, min_y, width, height])
+        self.arr = np.array([min_x, min_y, min_x+width, min_y+height])
 
 
 def generate(s, n, increment, image_path) -> list[BBOX]:
@@ -40,8 +40,8 @@ def display(BBOXs: list[BBOX], image_path, s):
     ax.scatter(x_list, y_list, s=10, c='b')
 
     for i in range(len(BBOXs)):
-        rect = patches.Rectangle((BBOXs[i].arr[0], BBOXs[i].arr[1]), BBOXs[i].arr[2],
-                                 BBOXs[i].arr[3], linewidth=0.1, edgecolor=get_random_color(), facecolor='none')
+        rect = patches.Rectangle((BBOXs[i].arr[0], BBOXs[i].arr[1]), BBOXs[i].arr[2]-BBOXs[i].arr[0],
+                                 BBOXs[i].arr[3]-BBOXs[i].arr[1], linewidth=0.1, edgecolor=get_random_color(), facecolor='none')
         ax.add_patch(rect)
 
     plt.show()
