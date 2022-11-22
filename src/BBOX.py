@@ -12,6 +12,9 @@ class BBOX():
     def __init__(self, min_x: int, min_y: int, width: int, height: int):
         self.arr = np.array([min_x, min_y, min_x+width, min_y+height])
 
+    def __str__(self):
+        return "BBOX: % s" % (self.arr)
+
 
 def generate(s, n, increment, image_path) -> list[BBOX]:
     scaling = 1.0/s+2
