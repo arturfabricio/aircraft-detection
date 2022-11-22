@@ -92,7 +92,7 @@ result = bbox_points(final)
 # print(len(train_im_list))
 # amount_imgs = 100
 
-final_data, img_name_data = imgs_annot_aggregator(len(train_im_list))
+final_data, img_name_data = imgs_annot_aggregator(2)#(len(train_im_list))
 result_data = bbox_points(final_data)
 print(np.shape(result_data))
 result_data.head()
@@ -221,10 +221,10 @@ importlib.reload(BBOX)
 im, bb = transformsXY(str(result_data['file_path'][i]), np.array(result_data['bbox'][i]),new_size,ratio)
 
 print(im.shape)
-
-bboxs = BBOX.generate(5, 130//4, 10, im.shape)
+s=5
+bboxs = BBOX.generate(s, 130//4, 10, im.shape)
 print(len(bboxs))
-BBOX.display(bboxs, img_test_path_curr, 5, new_size, ratio)
+#BBOX.display(bboxs, img_test_path_curr, s, new_size, ratio)
 
 def iou(boxA, boxB):
     xA = max(boxA.arr[0], boxB.arr[0])
@@ -275,9 +275,9 @@ for_real_tho = get_vectors_mask_wise(df_final)
 
 print(sum(for_real_tho['vector'][0]), for_real_tho['path'][0])
 print(sum(for_real_tho['vector'][1]), for_real_tho['path'][1])
-print(sum(for_real_tho['vector'][2]), for_real_tho['path'][2])
-print(sum(for_real_tho['vector'][3]), for_real_tho['path'][3])
-print(sum(for_real_tho['vector'][4]), for_real_tho['path'][4])
+# print(sum(for_real_tho['vector'][2]), for_real_tho['path'][2])
+# print(sum(for_real_tho['vector'][3]), for_real_tho['path'][3])
+# print(sum(for_real_tho['vector'][4]), for_real_tho['path'][4])
 
 for_real_tho = for_real_tho.reset_index()
 X = for_real_tho['path']
@@ -388,7 +388,7 @@ class AircraftModel(nn.Module):
         return x
 
 model = AircraftModel()
-device = torch.device('cuda')  # use cuda or cpu
+device = torch.device('cpu')  # use cuda or cpu
 model.to(device)
 print(model)
 
