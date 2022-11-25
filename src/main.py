@@ -4,7 +4,10 @@ import random
 import pandas as pd
 import skimage.io
 import numpy as np
-import cv2
+from sklearn import metrics
+from torchvision import transforms
+import time
+import csv
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from sklearn.model_selection import train_test_split
@@ -13,20 +16,34 @@ from torch.utils.data import Dataset, DataLoader
 import torch.optim as optim
 import torch.nn as nn
 import torch.nn.functional as F
-from torchvision import models
-import BBOX
+from torch.nn.modules.pooling import MaxPool1d
+from torch.nn import Linear, GRU, Conv2d, Dropout, MaxPool2d, BatchNorm1d, BatchNorm2d
+import bbox_utils
+from bbox_utils import BBOX
+import func_utils
+import warnings
+from func_utils import *
+import importlib
 
+warnings.simplefilter(action='ignore', category=FutureWarning)
 data_root = os.getcwd()
-print(data_root)
-#r"D:\RarePlanes\data"
-train_imgs = os.path.join(data_root, r'C:\Users\artur\Documents\GitHub\aircraft-detection\data\train')
-annot_dir = os.path.join(data_root, r'C:\Users\artur\Documents\GitHub\aircraft-detection\data\annot\rareplanes.json')
+train_imgs = os.path.join(data_root, '../AIRCRAFT/data/train')
+annot_dir = os.path.join(data_root, '../AIRCRAFT/data/annot/rareplanes.json')
 train_im_list = [z for z in os.listdir(train_imgs) if z.endswith('.png')]
 f = open(annot_dir)
 data = json.load(f)
-print(len(train_im_list))
-print(len(data['images']))
 assert len(train_im_list) == len(data['images'])
+
+### Hyperparameters #############
+s=15
+lr = 0.0001
+loss_fn = nn.CrossEntropyLoss()  
+batchsize = 64
+num_epochs = 500
+validation_every_steps = 20
+#################################
+
+### Functions ###
 
 def imgs_annot_aggregator(iter):
     print("Running imgs_annot_aggregator...")
@@ -86,28 +103,6 @@ def bbox_points(data_annot):
     })
     return df
 
-final, img_name = imgs_annot_aggregator(1)
-result = bbox_points(final)
-
-# print(len(train_im_list))
-# amount_imgs = 100
-
-final_data, img_name_data = imgs_annot_aggregator(2)#(len(train_im_list))
-result_data = bbox_points(final_data)
-print(np.shape(result_data))
-result_data.head()
-
-class_dict = {'Small Civil Transport/Utility': 0, 
-              'Medium Civil Transport/Utility': 1, 
-              'Large Civil Transport/Utility': 2, 
-              "Military Transport/Utility/AWAC": 3,
-              "Military Fighter/Interceptor/Attack": 4,
-              "Military Bomber": 5,
-              "Military Trainer": 6
-              }
-
-result_data['class'] = result_data['class'].apply(lambda x: class_dict[x])
-
 def create_mask(bb, x):
     """Creates a mask for the bounding box of same shape as image"""
     rows,cols,*_ = x.shape
@@ -130,9 +125,6 @@ def mask_to_bb(Y):
     bottom_row = np.max(rows)
     right_col = np.max(cols)
     return np.array([left_col, top_row, right_col, bottom_row], dtype=np.float32)
-
-new_size = 128
-ratio = int(512/new_size)
 
 def crop(im, r, c, target_r, target_c): 
     return im[r:r+target_r, c:c+target_c]
@@ -161,25 +153,9 @@ def show_corner_bb(im, bb):
     plt.imshow(im)
     plt.gca().add_patch(create_corner_rect(bb))
 
-result_data = result_data.reset_index()
-X = result_data[['file_path','bbox']]
-Y = result_data['class']
-
-data_frame_int = pd.DataFrame()
-from BBOX import *
-
-for i in range(len(result_data['file_path'])):
-    print(result_data['file_path'][i])
-    im, bb = transformsXY(str(result_data['file_path'][i]), np.array(result_data['bbox'][i]),new_size,ratio)
-    data_frame_int = data_frame_int.append({'file_path': result_data['file_path'][i], 'bbox': bb}, ignore_index=True)
-
-import warnings
-import BBOX
-warnings.simplefilter(action='ignore', category=FutureWarning)
-
 def image_merger(result_data):
     final_data_frame = pd.DataFrame()
-    print("Original length of result_data: ", len(result_data['file_path']))
+    #print("Original length of result_data: ", len(result_data['file_path']))
     imgs_used = []
 
     for i in range(len(result_data['file_path'])):
@@ -201,30 +177,11 @@ def image_merger(result_data):
             final_bbxs = []
             for h in range(len(indx_number)):
                 bbox = result_data['bbox'][indx_number[h]]
-                final_bbxs.append(BBOX.BBOX(bbox[0], bbox[1], bbox[2]-bbox[0], bbox[3]-bbox[1]))
+                final_bbxs.append(bbox_utils.BBOX(bbox[0], bbox[1], bbox[2]-bbox[0], bbox[3]-bbox[1]))
             
             final_data_frame = final_data_frame.append({'path': img_path_test, 'final_bbx': final_bbxs}, ignore_index=True)
 
     return final_data_frame
-
-df_final = image_merger(data_frame_int)
-df_final.head()
-
-print(df_final['final_bbx'][0])
-print(df_final['path'][0])
-
-img_test_path_curr = df_final['path'][0]
-
-import importlib
-importlib.reload(BBOX)
-
-im, bb = transformsXY(str(result_data['file_path'][i]), np.array(result_data['bbox'][i]),new_size,ratio)
-
-print(im.shape)
-s=5
-bboxs = BBOX.generate(s, 130//4, 10, im.shape)
-print(len(bboxs))
-#BBOX.display(bboxs, img_test_path_curr, s, new_size, ratio)
 
 def iou(boxA, boxB):
     xA = max(boxA.arr[0], boxB.arr[0])
@@ -237,19 +194,11 @@ def iou(boxA, boxB):
     iou = interArea / float(boxAArea + boxBArea - interArea)
     return iou
 
-rec1 = BBOX.BBOX(120,120,60,60)
-rec2 = BBOX.BBOX(120,120,60,60)
-
-result_iou = iou(rec1,rec2) 
-print(result_iou)
-
 def app_flat(my_array):
     out = np.zeros_like(my_array)
     idx  = my_array.argmax()
     out.flat[idx] = 1
     return out
-
-import BBOX
 
 def get_vectors_mask_wise(df_final):
     for_real_tho = pd.DataFrame()
@@ -271,19 +220,52 @@ def get_vectors_mask_wise(df_final):
 
     return for_real_tho
 
-for_real_tho = get_vectors_mask_wise(df_final)
+def accuracy(target, pred):
+    return metrics.accuracy_score(target.detach().cpu().numpy(), pred.detach().cpu().numpy())
 
-print(sum(for_real_tho['vector'][0]), for_real_tho['path'][0])
-print(sum(for_real_tho['vector'][1]), for_real_tho['path'][1])
-# print(sum(for_real_tho['vector'][2]), for_real_tho['path'][2])
-# print(sum(for_real_tho['vector'][3]), for_real_tho['path'][3])
-# print(sum(for_real_tho['vector'][4]), for_real_tho['path'][4])
+### Processing ###
+final, img_name = imgs_annot_aggregator(1)
+result = bbox_points(final)
+final_data, img_name_data = imgs_annot_aggregator(len(train_im_list))
+result_data = bbox_points(final_data)
+result_data.head()
+
+class_dict = {'Small Civil Transport/Utility': 0, 
+              'Medium Civil Transport/Utility': 1, 
+              'Large Civil Transport/Utility': 2, 
+              "Military Transport/Utility/AWAC": 3,
+              "Military Fighter/Interceptor/Attack": 4,
+              "Military Bomber": 5,
+              "Military Trainer": 6
+              }
+
+result_data['class'] = result_data['class'].apply(lambda x: class_dict[x])
+
+new_size = 128
+ratio = int(512/new_size)
+
+result_data = result_data.reset_index()
+X = result_data[['file_path','bbox']]
+Y = result_data['class']
+data_frame_int = pd.DataFrame()
+
+for i in range(len(result_data['file_path'])):
+    print(result_data['file_path'][i])
+    im, bb = bbox_utils.transformsXY(str(result_data['file_path'][i]), np.array(result_data['bbox'][i]),new_size,ratio)
+    data_frame_int = data_frame_int.append({'file_path': result_data['file_path'][i], 'bbox': bb}, ignore_index=True)
+
+df_final = image_merger(data_frame_int)
+df_final.head()
+img_test_path_curr = df_final['path'][0]
+im, bb = bbox_utils.transformsXY(str(result_data['file_path'][i]), np.array(result_data['bbox'][i]),new_size,ratio)
+
+bboxs = bbox_utils.generate(s, 130//4, 10, im.shape)
+for_real_tho = get_vectors_mask_wise(df_final)
 
 for_real_tho = for_real_tho.reset_index()
 X = for_real_tho['path']
 Y = for_real_tho['vector']
 X_train, X_val, y_train, y_val = train_test_split(X, Y, test_size=0.2, random_state=42)
-print(X_train)
 
 class AircraftDataset(Dataset):
     def __init__(self, paths, y, transforms=False):
@@ -303,19 +285,6 @@ valid_ds = AircraftDataset(X_val,y_val)
 batch_size = 64
 train_dl = DataLoader(train_ds, batch_size=batch_size, shuffle=True, num_workers=0, drop_last=False)
 valid_dl = DataLoader(valid_ds, batch_size=batch_size, shuffle=False, num_workers=0, drop_last=False)
-
-# print("Training data")
-# print("Number of points:", len(train_ds))
-# x, y = next(iter(train_dl))
-# print("Batch dimension (B x C x H x W):", x)
-
-# print("\nTest data")
-# print("Number of points:", len(valid_ds))
-# x, y = next(iter(valid_dl))
-# print("Batch dimension (B x C x H x W):", x)
-
-from torch.nn.modules.pooling import MaxPool1d
-from torch.nn import Linear, GRU, Conv2d, Dropout, MaxPool2d, BatchNorm1d, BatchNorm2d
 
 class AircraftModel(nn.Module):
     def __init__(self):
@@ -379,7 +348,7 @@ class AircraftModel(nn.Module):
         self.connected = nn.Sequential(
             nn.Linear(128*128,out_features=1024, bias=False),
             nn.ReLU(), 
-            nn.LazyLinear(out_features=len(bboxs), bias=False)
+            nn.Linear(1024,out_features=len(bboxs), bias=False)
         )
 
     def forward(self, x):
@@ -388,36 +357,17 @@ class AircraftModel(nn.Module):
         return x
 
 model = AircraftModel()
-device = torch.device('cpu')  # use cuda or cpu
+device = torch.device('cuda')  # use cuda or cpu
+print("Used device: ", device)
 model.to(device)
 print(model)
 
-lr = 0.0005
-
-loss_fn = nn.CrossEntropyLoss()  
+out = model(torch.randn(batchsize,3, 128, 128, device=device))
+# print("Output shape:", out.size())
+# print(f"Output logits:\n{out.detach().cpu().numpy()}")
 optimizer = optim.Adam(model.parameters(), lr)  
 
-# Test the forward pass with dummy data
-batchsize = 64
-out = model(torch.randn(batchsize,3, 128, 128, device=device))
-print("Output shape:", out.size())
-print(f"Output logits:\n{out.detach().cpu().numpy()}")
-
-from sklearn import metrics
-
-def accuracy(target, pred):
-    return metrics.accuracy_score(target.detach().cpu().numpy(), pred.detach().cpu().numpy())
-
-from torchvision import transforms
-import importlib
-import time
-import csv
-importlib.reload(BBOX)
-
 convert_tensor = transforms.ToTensor()
-num_epochs = 5
-validation_every_steps = 1
-
 step = 0
 model.train()
 
@@ -426,25 +376,23 @@ valid_accuracies = []
         
 start_time = str(time.time()) 
 
-titles = ['learning rate', 'epochs', 'train_images','val_images', 's', 'loss_fn', 'optimizer']
-hyper = [lr, num_epochs,len(train_ds),len(valid_ds),s,loss_fn,optimizer]
+titles = ['learning rate','batchsize', 'epochs', 'train_images','val_images', 's', 'loss_fn', 'optimizer']
+hyper = [lr, batchsize,num_epochs,len(train_ds),len(valid_ds),s,loss_fn,optimizer]
 
-with open(f'hyper_{start_time}.csv', 'a', newline='') as myfile:
+PATH_HYPER = os.path.join(data_root, f'../AIRCRAFT/data/model/logs/hyper_{start_time}.csv')
+with open(PATH_HYPER, 'a', newline='') as myfile:
             wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
             wr.writerow(titles)
             wr.writerow(hyper)
-
 
 for epoch in range(num_epochs):
     print("Epoch number: ", epoch)
 
     train_accuracies_batches = []
-    
     for inputs, targets in train_dl:
         new_inputs = []
-
         for i in range(len(inputs)):
-            im = BBOX.transformsXY_im(inputs[i],new_size)
+            im = bbox_utils.transformsXY_im(inputs[i],new_size)
             tensor = convert_tensor(im)
             new_inputs.append(tensor)
             
@@ -464,15 +412,23 @@ for epoch in range(num_epochs):
         # Compute accuracy.
         # we use output & target
 
-        subtra = torch.subtract(output,targets)
-        squared = torch.square(subtra)
-        acc = torch.sum(squared)
+        # subtra = torch.subtract(output,targets)
+        # squared = torch.square(subtra)
+        # acc = torch.sum(squared)
 
-        train_accuracies_batches.append(acc.detach().numpy())
+        print("targets: ",targets)
+        print("output: ",output)
 
-        with open(f'logs_train_{start_time}.csv', 'a', newline='') as myfile:
+        correct_match = 0
+        correct_match += (output == targets).float().sum()
+        accuracy_train = 100 * correct_match / len(inputs)
+        print("accuracy_val: ", float(accuracy_train.numpy()))
+        train_accuracies_batches.append(float(accuracy_train.cpu().numpy()))#acc.cpu().detach().numpy())
+
+        PATH_TRAIN = os.path.join(data_root, f'../AIRCRAFT/data/model/logs/logs_train_{start_time}.csv')
+        with open(PATH_TRAIN, 'a', newline='') as myfile:
             wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
-            wr.writerow([int(acc)])
+            wr.writerow([accuracy_train.cpu().detach().numpy(), loss.cpu().detach().numpy()])#[int(acc)])
 
         if step % validation_every_steps == 0:
             
@@ -489,7 +445,7 @@ for epoch in range(num_epochs):
                     new_inputs = []
 
                     for i in range(len(inputs)):
-                        im = BBOX.transformsXY_im(inputs[i],new_size)
+                        im = bbox_utils.transformsXY_im(inputs[i],new_size)
                         tensor = convert_tensor(im)
                         new_inputs.append(tensor)
                         
@@ -499,15 +455,30 @@ for epoch in range(num_epochs):
                     output = model(new_inputs)
                     loss = loss_fn(output, targets)
 
+                    print("targets: ",targets)
+                    print("output: ",output)
 
-                    subtra = torch.subtract(output,targets)
-                    squared = torch.square(subtra)
-                    acc = torch.sum(squared)/len(bboxs)
-                    valid_accuracies_batches.append(acc.detach().numpy()* len(inputs))
+                    correct_match = 0
+                    correct_match += (output == targets).float().sum()
+                    accuracy_val = 100 * correct_match / len(inputs)
+                    print("accuracy_val: ", float(accuracy_val.numpy()))
+                    train_accuracies_batches.append(float(accuracy_val.cpu().detach().numpy()))#acc.cpu().detach().numpy())
 
-                    with open(f'logs_val_{start_time}.csv', 'a', newline='') as myfile:
+                    PATH_TRAIN = os.path.join(data_root, f'../AIRCRAFT/data/model/logs/logs_val_{start_time}.csv')
+                    with open(PATH_TRAIN, 'a', newline='') as myfile:
                         wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
-                        wr.writerow([int(acc)])
+                        wr.writerow([accuracy_val.cpu().detach().numpy(), loss.cpu().detach().numpy()])#[int(acc)])
+
+                    # subtra = torch.subtract(output,targets)
+                    # squared = torch.square(subtra)
+                    # acc = torch.sum(squared)/len(bboxs)
+
+                    # valid_accuracies_batches.append(acc.cpu().detach().numpy()* len(inputs))
+
+                    # PATH_VAL = os.path.join(data_root, f'../AIRCRAFT/data/model/logs/logs_val_{start_time}.csv')
+                    # with open(PATH_VAL, 'a', newline='') as myfile:
+                    #     wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
+                    #     wr.writerow([int(acc)])
                     # Multiply by len(x) because the final batch of DataLoader may be smaller (drop_last=False).
                 model.train()
                 
@@ -519,4 +490,5 @@ for epoch in range(num_epochs):
 
 print("Finished training.")
 
-torch.save(model.state_dict(), PATH)
+#PATH = os.path.join(data_root, f'../AIRCRAFT/data/model/{start_time}.pth')
+#torch.save(model, PATH)

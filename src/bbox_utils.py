@@ -1,6 +1,5 @@
 import colorsys
 import random
-from PIL import Image
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
@@ -14,43 +13,30 @@ class BBOX():
     def __str__(self):
         return "BBOX: % s" % (self.arr)
 
-
 def generate(s, n, increment, im_shape) -> list[BBOX]:
     scaling = 1.0/s+2
     bbox_final = []
-
     x_list, y_list, _ = get_referencepoints(im_shape, s)
-
     for x in x_list:
         for y in y_list:
-
             for i in range(0, n, increment):
                 bbox_final.append(BBOX(x - (i // 2),   y - (i // 2),   i,   i))
                 bbox_final.append(BBOX(x - (i*2 // 2), y - (i // 2),   i*2, i))
                 bbox_final.append(
                     BBOX(x - (i // 2),   y - (i*2 // 2), i,   i*2))
-
     return bbox_final
 
 
 def display(BBOXs: list[BBOX], image_path, s, new_size, ratio):
-    # im = Image.open(image_path)
-
     im = transformsXY_im(image_path,new_size)
-
-
-
     fig, ax = plt.subplots()
     ax.imshow(im)
-
     x_list, y_list, _ = get_referencepoints(image_path, s)
     ax.scatter(x_list, y_list, s=10, c='b')
-
     for i in range(len(BBOXs)):
         rect = patches.Rectangle((BBOXs[i].arr[0], BBOXs[i].arr[1]), BBOXs[i].arr[2]-BBOXs[i].arr[0],
                                  BBOXs[i].arr[3]-BBOXs[i].arr[1], linewidth=0.1, edgecolor=get_random_color(), facecolor='none')
         ax.add_patch(rect)
-
     plt.show()
 
 
@@ -74,7 +60,6 @@ def get_referencepoints(im_shape, s):
             y.append(j)
     return x, y, s
 
-
 def get_random_color():
     h, s, l = random.uniform(0, 1), 1, 0.5
     return colorsys.hls_to_rgb(h, l, s)
@@ -89,7 +74,6 @@ def transformsXY(path, bb, new_size, ratio):
     bb[2] = int(bb[2]/ratio)
     bb[3] = int(bb[3]/ratio)
     return x, bb 
-
 
 def transformsXY_im(path, new_size):
     x = cv2.imread(str(path)).astype(np.float32)
