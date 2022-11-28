@@ -8,22 +8,30 @@ import skimage.io
 
 class BBOX():
     def __init__(self, min_x: int, min_y: int, width: int, height: int):
-        self.arr = np.array([min_x, min_y, min_x+width, min_y+height])
+        self.arr = np.array([np.clip(min_x, 0 , 128), np.clip(min_y, 0, 128), np.clip(min_x+width, 0, 128), np.clip(min_y+height,0, 128)])
 
     def __str__(self):
         return "BBOX: % s" % (self.arr)
 
+def contains(list, filter):
+    for x in list:
+        if filter(x):
+            return True
+    return False
+
 def generate(s, n, increment, im_shape) -> list[BBOX]:
     scaling = 1.0/s+2
+
     bbox_final = []
     x_list, y_list, _ = get_referencepoints(im_shape, s)
     for x in x_list:
         for y in y_list:
             for i in range(0, n, increment):
+        
                 bbox_final.append(BBOX(x - (i // 2),   y - (i // 2),   i,   i))
                 bbox_final.append(BBOX(x - (i*2 // 2), y - (i // 2),   i*2, i))
-                bbox_final.append(
-                    BBOX(x - (i // 2),   y - (i*2 // 2), i,   i*2))
+                bbox_final.append(BBOX(x - (i // 2),   y - (i*2 // 2), i,   i*2))
+
     return bbox_final
 
 
