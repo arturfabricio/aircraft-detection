@@ -374,23 +374,26 @@ print(for_real_tho.head())
 #         # Compute accuracy.
 #         # we use output & target
 
-#         # subtra = torch.subtract(output,targets)
-#         # squared = torch.square(subtra)
-#         # acc = torch.sum(squared)
+# subtra = torch.subtract(output,targets)
+# squared = torch.square(subtra)
+# acc = torch.sum(squared)
 
-#         print("targets: ",targets)
-#         print("output: ",output)
+print("targets: ", targets)
+print("output: ", output)
 
-#         correct_match = 0
-#         correct_match += (output == targets).float().sum()
-#         accuracy_train = 100 * correct_match / len(inputs)
-#         print("accuracy_val: ", float(accuracy_train.numpy()))
-#         train_accuracies_batches.append(float(accuracy_train.cpu().numpy()))#acc.cpu().detach().numpy())
+correct_match = 0
+correct_match += (output == targets).float().sum()
+accuracy_train = 100 * correct_match / len(inputs)
+print("accuracy_val: ", float(accuracy_train.numpy()))
+# acc.cpu().detach().numpy())
+train_accuracies_batches.append(float(accuracy_train.cpu().numpy()))
 
-#         PATH_TRAIN = os.path.join(data_root, f'../AIRCRAFT/data/model/logs/logs_train_{start_time}.csv')
-#         with open(PATH_TRAIN, 'a', newline='') as myfile:
-#             wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
-#             wr.writerow([accuracy_train.cpu().detach().numpy(), loss.cpu().detach().numpy()])#[int(acc)])
+PATH_TRAIN = os.path.join(
+    data_root, f'../AIRCRAFT/data/model/logs/logs_train_{start_time}.csv')
+with open(PATH_TRAIN, 'a', newline='') as myfile:
+    wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
+    wr.writerow([accuracy_train.cpu().detach().numpy(),
+                 loss.cpu().detach().numpy()])  # [int(acc)])
 
 #         if step % validation_every_steps == 0:
 
@@ -450,7 +453,7 @@ print(for_real_tho.head())
 #             print(f"Step {step:<5}   training accuracy: {train_accuracies[-1]}")
 #             print(f"             test accuracy: {valid_accuracies[-1]}")
 
-# print("Finished training.")
+print("Finished training.")
 
 # #PATH = os.path.join(data_root, f'../AIRCRAFT/data/model/{start_time}.pth')
 # #torch.save(model, PATH)
