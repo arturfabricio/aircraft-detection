@@ -41,14 +41,18 @@ data = json.load(f)
 assert len(train_im_list) == len(data['images'])
 
 ### Hyperparameters #############
+
+
+def loss_fn(output, target):
+    num_planes = torch.sum(target)
+    return torch.where(condition=num_planes > 0,
+                       x=torch.mean((output - target) ** 2) /
+                       torch.sum(target),
+                       y=torch.mean((output - target) ** 2))
+
+
 s = 4
 lr = 0.0001
-
-
-def loss_fn(output, target): return torch.mean(
-    (output - target) ** 2) / torch.sum(target)
-
-
 batchsize = 64
 num_epochs = 2
 validation_every_steps = 1
