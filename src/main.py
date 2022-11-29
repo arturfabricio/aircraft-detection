@@ -200,233 +200,233 @@ for_real_tho = get_vectors_mask_wise(df_final)
 
 print(for_real_tho.head())
 
-# for_real_tho = for_real_tho.reset_index()
-# X = for_real_tho['path']
-# Y = for_real_tho['vector']
-# X_train, X_val, y_train, y_val = train_test_split(X, Y, test_size=0.2, random_state=42)
+for_real_tho = for_real_tho.reset_index()
+X = for_real_tho['path']
+Y = for_real_tho['vector']
+X_train, X_val, y_train, y_val = train_test_split(X, Y, test_size=0.2, random_state=42)
 
-# class AircraftDataset(Dataset):
-#     def __init__(self, paths, y, transforms=False):
-#         self.paths = paths.values
-#         self.y = y.values
-#     def __len__(self):
-#         return len(self.paths)
+class AircraftDataset(Dataset):
+    def __init__(self, paths, y, transforms=False):
+        self.paths = paths.values
+        self.y = y.values
+    def __len__(self):
+        return len(self.paths)
     
-#     def __getitem__(self, idx):
-#         path = self.paths[idx]
-#         y = self.y[idx]   
-#         return path, y
+    def __getitem__(self, idx):
+        path = self.paths[idx]
+        y = self.y[idx]   
+        return path, y
 
-# train_ds = AircraftDataset(X_train,y_train, transforms=True)
-# valid_ds = AircraftDataset(X_val,y_val)
+train_ds = AircraftDataset(X_train,y_train, transforms=True)
+valid_ds = AircraftDataset(X_val,y_val)
 
-# batch_size = 64
-# train_dl = DataLoader(train_ds, batch_size=batch_size, shuffle=True, num_workers=0, drop_last=False)
-# valid_dl = DataLoader(valid_ds, batch_size=batch_size, shuffle=False, num_workers=0, drop_last=False)
+batch_size = 64
+train_dl = DataLoader(train_ds, batch_size=batch_size, shuffle=True, num_workers=0, drop_last=False)
+valid_dl = DataLoader(valid_ds, batch_size=batch_size, shuffle=False, num_workers=0, drop_last=False)
 
-# class AircraftModel(nn.Module):
-#     def __init__(self):
-#         super(AircraftModel, self).__init__()
-#         self.conv = nn.Sequential(
-#             Conv2d(3,192,kernel_size=7,stride=2),
-#             nn.LeakyReLU(0.1),
-#             MaxPool2d(2,2),
-#             Conv2d(192,256,3,1),
-#             nn.LeakyReLU(0.1),
-#             MaxPool2d(2,2),
-#             Conv2d(256,128,1,1),
-#             nn.LeakyReLU(0.1),
-#             Conv2d(128,256,1,1),
-#             nn.LeakyReLU(0.1),
-#             Conv2d(256,256,1,1),
-#             nn.LeakyReLU(0.1),
-#             Conv2d(256,512,1,1),
-#             nn.LeakyReLU(0.1),
-#             MaxPool2d(2,2),
-#             Conv2d(512,256,1,1),
-#             nn.LeakyReLU(0.1),
-#             Conv2d(256,512,1,1),
-#             nn.LeakyReLU(0.1),
-#             Conv2d(512,256,1,1),
-#             nn.LeakyReLU(0.1),
-#             Conv2d(256,512,1,1),
-#             nn.LeakyReLU(0.1),
-#             Conv2d(512,256,1,1),
-#             nn.LeakyReLU(0.1),
-#             Conv2d(256,512,1,1),
-#             nn.LeakyReLU(0.1),
-#             Conv2d(512,256,1,1),
-#             nn.LeakyReLU(0.1),
-#             Conv2d(256,512,1,1),
-#             nn.LeakyReLU(0.1),
-#             Conv2d(512,1024,1,1),
-#             nn.LeakyReLU(0.1),
-#             Conv2d(1024,512,1,1),
-#             nn.LeakyReLU(0.1),
-#             # MaxPool2d(2,2),
-#             Conv2d(512,1024,1,1),
-#             nn.LeakyReLU(0.1),
-#             Conv2d(1024,512,1,1),
-#             nn.LeakyReLU(0.1),
-#             Conv2d(512,1024,1,1),
-#             nn.LeakyReLU(0.1),
-#             Conv2d(1024,512,1,1),
-#             nn.LeakyReLU(0.1),
-#             Conv2d(512,1024,1,1),
-#             nn.LeakyReLU(0.1),
-#             Conv2d(1024,1024,1,2),
-#             nn.LeakyReLU(0.1),
-#             Conv2d(1024,1024,1,1),
-#             nn.LeakyReLU(0.1),
-#             Conv2d(1024,1024,1,1),
-#             nn.LeakyReLU(0.1),
-#             nn.Flatten(start_dim=1)
-#         )
+class AircraftModel(nn.Module):
+    def __init__(self):
+        super(AircraftModel, self).__init__()
+        self.conv = nn.Sequential(
+            Conv2d(3,192,kernel_size=7,stride=2),
+            nn.LeakyReLU(0.1),
+            MaxPool2d(2,2),
+            Conv2d(192,256,3,1),
+            nn.LeakyReLU(0.1),
+            MaxPool2d(2,2),
+            Conv2d(256,128,1,1),
+            nn.LeakyReLU(0.1),
+            Conv2d(128,256,1,1),
+            nn.LeakyReLU(0.1),
+            Conv2d(256,256,1,1),
+            nn.LeakyReLU(0.1),
+            Conv2d(256,512,1,1),
+            nn.LeakyReLU(0.1),
+            MaxPool2d(2,2),
+            Conv2d(512,256,1,1),
+            nn.LeakyReLU(0.1),
+            Conv2d(256,512,1,1),
+            nn.LeakyReLU(0.1),
+            Conv2d(512,256,1,1),
+            nn.LeakyReLU(0.1),
+            Conv2d(256,512,1,1),
+            nn.LeakyReLU(0.1),
+            Conv2d(512,256,1,1),
+            nn.LeakyReLU(0.1),
+            Conv2d(256,512,1,1),
+            nn.LeakyReLU(0.1),
+            Conv2d(512,256,1,1),
+            nn.LeakyReLU(0.1),
+            Conv2d(256,512,1,1),
+            nn.LeakyReLU(0.1),
+            Conv2d(512,1024,1,1),
+            nn.LeakyReLU(0.1),
+            Conv2d(1024,512,1,1),
+            nn.LeakyReLU(0.1),
+            # MaxPool2d(2,2),
+            Conv2d(512,1024,1,1),
+            nn.LeakyReLU(0.1),
+            Conv2d(1024,512,1,1),
+            nn.LeakyReLU(0.1),
+            Conv2d(512,1024,1,1),
+            nn.LeakyReLU(0.1),
+            Conv2d(1024,512,1,1),
+            nn.LeakyReLU(0.1),
+            Conv2d(512,1024,1,1),
+            nn.LeakyReLU(0.1),
+            Conv2d(1024,1024,1,2),
+            nn.LeakyReLU(0.1),
+            Conv2d(1024,1024,1,1),
+            nn.LeakyReLU(0.1),
+            Conv2d(1024,1024,1,1),
+            nn.LeakyReLU(0.1),
+            nn.Flatten(start_dim=1)
+        )
 
-#         self.connected = nn.Sequential(
-#             nn.Linear(128*128,out_features=1024, bias=False),
-#             nn.ReLU(), 
-#             nn.Linear(1024,out_features=len(bboxs), bias=False)
-#         )
+        self.connected = nn.Sequential(
+            nn.Linear(128*128,out_features=1024, bias=False),
+            nn.ReLU(), 
+            nn.Linear(1024,out_features=len(bboxs), bias=False)
+        )
 
-#     def forward(self, x):
-#         x = self.conv(x)
-#         x = self.connected(x)
-#         return x
+    def forward(self, x):
+        x = self.conv(x)
+        x = self.connected(x)
+        return x
 
-# model = AircraftModel()
-# device = torch.device('cuda')  # use cuda or cpu
-# print("Used device: ", device)
-# model.to(device)
-# print(model)
+model = AircraftModel()
+device = torch.device('cuda')  # use cuda or cpu
+print("Used device: ", device)
+model.to(device)
+print(model)
 
-# out = model(torch.randn(batchsize,3, 128, 128, device=device))
-# # print("Output shape:", out.size())
-# # print(f"Output logits:\n{out.detach().cpu().numpy()}")
-# optimizer = optim.Adam(model.parameters(), lr)  
+out = model(torch.randn(batchsize,3, 128, 128, device=device))
+# print("Output shape:", out.size())
+# print(f"Output logits:\n{out.detach().cpu().numpy()}")
+optimizer = optim.Adam(model.parameters(), lr)  
 
-# convert_tensor = transforms.ToTensor()
-# step = 0
-# model.train()
+convert_tensor = transforms.ToTensor()
+step = 0
+model.train()
 
-# train_accuracies = []
-# valid_accuracies = []
+train_accuracies = []
+valid_accuracies = []
         
-# start_time = str(time.time()) 
+start_time = str(time.time()) 
 
-# titles = ['learning rate','batchsize', 'epochs', 'train_images','val_images', 's', 'loss_fn', 'optimizer']
-# hyper = [lr, batchsize,num_epochs,len(train_ds),len(valid_ds),s,loss_fn,optimizer]
+titles = ['learning rate','batchsize', 'epochs', 'train_images','val_images', 's', 'loss_fn', 'optimizer']
+hyper = [lr, batchsize,num_epochs,len(train_ds),len(valid_ds),s,loss_fn,optimizer]
 
-# PATH_HYPER = os.path.join(data_root, f'../AIRCRAFT/data/model/logs/hyper_{start_time}.csv')
-# with open(PATH_HYPER, 'a', newline='') as myfile:
-#             wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
-#             wr.writerow(titles)
-#             wr.writerow(hyper)
+PATH_HYPER = os.path.join(data_root, f'../AIRCRAFT/data/model/logs/hyper_{start_time}.csv')
+with open(PATH_HYPER, 'a', newline='') as myfile:
+            wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
+            wr.writerow(titles)
+            wr.writerow(hyper)
 
-# for epoch in range(num_epochs):
-#     print("Epoch number: ", epoch)
+for epoch in range(num_epochs):
+    print("Epoch number: ", epoch)
 
-#     train_accuracies_batches = []
-#     for inputs, targets in train_dl:
-#         new_inputs = []
-#         for i in range(len(inputs)):
-#             im = bbox_utils.transformsXY_im(inputs[i],new_size)
-#             tensor = convert_tensor(im)
-#             new_inputs.append(tensor)
+    train_accuracies_batches = []
+    for inputs, targets in train_dl:
+        new_inputs = []
+        for i in range(len(inputs)):
+            im = bbox_utils.transformsXY_im(inputs[i],new_size)
+            tensor = convert_tensor(im)
+            new_inputs.append(tensor)
             
-#         new_inputs = torch.stack(tuple(new_inputs),0)
-#         new_inputs, targets = new_inputs.to(device), targets.to(device) 
+        new_inputs = torch.stack(tuple(new_inputs),0)
+        new_inputs, targets = new_inputs.to(device), targets.to(device) 
 
-#         # Forward pass, compute gradients, perform one training step.
-#         optimizer.zero_grad()
-#         output = model(new_inputs)
-#         loss = loss_fn(output, targets)
-#         loss.backward()
-#         optimizer.step()
+        # Forward pass, compute gradients, perform one training step.
+        optimizer.zero_grad()
+        output = model(new_inputs)
+        loss = loss_fn(output, targets)
+        loss.backward()
+        optimizer.step()
         
-#         # Increment step counter
-#         step += 1
+        # Increment step counter
+        step += 1
         
-#         # Compute accuracy.
-#         # we use output & target
+        # Compute accuracy.
+        # we use output & target
 
-#         # subtra = torch.subtract(output,targets)
-#         # squared = torch.square(subtra)
-#         # acc = torch.sum(squared)
+        # subtra = torch.subtract(output,targets)
+        # squared = torch.square(subtra)
+        # acc = torch.sum(squared)
 
-#         print("targets: ",targets)
-#         print("output: ",output)
+        print("targets: ",targets)
+        print("output: ",output)
 
-#         correct_match = 0
-#         correct_match += (output == targets).float().sum()
-#         accuracy_train = 100 * correct_match / len(inputs)
-#         print("accuracy_val: ", float(accuracy_train.numpy()))
-#         train_accuracies_batches.append(float(accuracy_train.cpu().numpy()))#acc.cpu().detach().numpy())
+        correct_match = 0
+        correct_match += (output == targets).float().sum()
+        accuracy_train = 100 * correct_match / len(inputs)
+        print("accuracy_val: ", float(accuracy_train.numpy()))
+        train_accuracies_batches.append(float(accuracy_train.cpu().numpy()))#acc.cpu().detach().numpy())
 
-#         PATH_TRAIN = os.path.join(data_root, f'../AIRCRAFT/data/model/logs/logs_train_{start_time}.csv')
-#         with open(PATH_TRAIN, 'a', newline='') as myfile:
-#             wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
-#             wr.writerow([accuracy_train.cpu().detach().numpy(), loss.cpu().detach().numpy()])#[int(acc)])
+        PATH_TRAIN = os.path.join(data_root, f'../AIRCRAFT/data/model/logs/logs_train_{start_time}.csv')
+        with open(PATH_TRAIN, 'a', newline='') as myfile:
+            wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
+            wr.writerow([accuracy_train.cpu().detach().numpy(), loss.cpu().detach().numpy()])#[int(acc)])
 
-#         if step % validation_every_steps == 0:
+        if step % validation_every_steps == 0:
             
-#             # Append average training accuracy to list.
-#             train_accuracies.append(np.mean(train_accuracies_batches))
+            # Append average training accuracy to list.
+            train_accuracies.append(np.mean(train_accuracies_batches))
             
-#             train_accuracies_batches = []
+            train_accuracies_batches = []
         
-#             # Compute accuracies on validation set.
-#             valid_accuracies_batches = []
-#             with torch.no_grad():
-#                 model.eval()
-#                 for inputs, targets in valid_dl:
-#                     new_inputs = []
+            # Compute accuracies on validation set.
+            valid_accuracies_batches = []
+            with torch.no_grad():
+                model.eval()
+                for inputs, targets in valid_dl:
+                    new_inputs = []
 
-#                     for i in range(len(inputs)):
-#                         im = bbox_utils.transformsXY_im(inputs[i],new_size)
-#                         tensor = convert_tensor(im)
-#                         new_inputs.append(tensor)
+                    for i in range(len(inputs)):
+                        im = bbox_utils.transformsXY_im(inputs[i],new_size)
+                        tensor = convert_tensor(im)
+                        new_inputs.append(tensor)
                         
-#                     new_inputs = torch.stack(tuple(new_inputs),0)
-#                     new_inputs, targets = new_inputs.to(device), targets.to(device) 
+                    new_inputs = torch.stack(tuple(new_inputs),0)
+                    new_inputs, targets = new_inputs.to(device), targets.to(device) 
 
-#                     output = model(new_inputs)
-#                     loss = loss_fn(output, targets)
+                    output = model(new_inputs)
+                    loss = loss_fn(output, targets)
 
-#                     print("targets: ",targets)
-#                     print("output: ",output)
+                    print("targets: ",targets)
+                    print("output: ",output)
 
-#                     correct_match = 0
-#                     correct_match += (output == targets).float().sum()
-#                     accuracy_val = 100 * correct_match / len(inputs)
-#                     print("accuracy_val: ", float(accuracy_val.numpy()))
-#                     train_accuracies_batches.append(float(accuracy_val.cpu().detach().numpy()))#acc.cpu().detach().numpy())
+                    correct_match = 0
+                    correct_match += (output == targets).float().sum()
+                    accuracy_val = 100 * correct_match / len(inputs)
+                    print("accuracy_val: ", float(accuracy_val.numpy()))
+                    train_accuracies_batches.append(float(accuracy_val.cpu().detach().numpy()))#acc.cpu().detach().numpy())
 
-#                     PATH_TRAIN = os.path.join(data_root, f'../AIRCRAFT/data/model/logs/logs_val_{start_time}.csv')
-#                     with open(PATH_TRAIN, 'a', newline='') as myfile:
-#                         wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
-#                         wr.writerow([accuracy_val.cpu().detach().numpy(), loss.cpu().detach().numpy()])#[int(acc)])
+                    PATH_TRAIN = os.path.join(data_root, f'../AIRCRAFT/data/model/logs/logs_val_{start_time}.csv')
+                    with open(PATH_TRAIN, 'a', newline='') as myfile:
+                        wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
+                        wr.writerow([accuracy_val.cpu().detach().numpy(), loss.cpu().detach().numpy()])#[int(acc)])
 
-#                     # subtra = torch.subtract(output,targets)
-#                     # squared = torch.square(subtra)
-#                     # acc = torch.sum(squared)/len(bboxs)
+                    # subtra = torch.subtract(output,targets)
+                    # squared = torch.square(subtra)
+                    # acc = torch.sum(squared)/len(bboxs)
 
-#                     # valid_accuracies_batches.append(acc.cpu().detach().numpy()* len(inputs))
+                    # valid_accuracies_batches.append(acc.cpu().detach().numpy()* len(inputs))
 
-#                     # PATH_VAL = os.path.join(data_root, f'../AIRCRAFT/data/model/logs/logs_val_{start_time}.csv')
-#                     # with open(PATH_VAL, 'a', newline='') as myfile:
-#                     #     wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
-#                     #     wr.writerow([int(acc)])
-#                     # Multiply by len(x) because the final batch of DataLoader may be smaller (drop_last=False).
-#                 model.train()
+                    # PATH_VAL = os.path.join(data_root, f'../AIRCRAFT/data/model/logs/logs_val_{start_time}.csv')
+                    # with open(PATH_VAL, 'a', newline='') as myfile:
+                    #     wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
+                    #     wr.writerow([int(acc)])
+                    # Multiply by len(x) because the final batch of DataLoader may be smaller (drop_last=False).
+                model.train()
                 
-#             # Append average validation accuracy to list.
-#             valid_accuracies.append(np.sum(valid_accuracies_batches) / len(X_train))
+            # Append average validation accuracy to list.
+            valid_accuracies.append(np.sum(valid_accuracies_batches) / len(X_train))
      
-#             print(f"Step {step:<5}   training accuracy: {train_accuracies[-1]}")
-#             print(f"             test accuracy: {valid_accuracies[-1]}")
+            print(f"Step {step:<5}   training accuracy: {train_accuracies[-1]}")
+            print(f"             test accuracy: {valid_accuracies[-1]}")
 
-# print("Finished training.")
+print("Finished training.")
 
-# #PATH = os.path.join(data_root, f'../AIRCRAFT/data/model/{start_time}.pth')
-# #torch.save(model, PATH)
+#PATH = os.path.join(data_root, f'../AIRCRAFT/data/model/{start_time}.pth')
+#torch.save(model, PATH)
