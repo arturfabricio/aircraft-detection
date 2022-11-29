@@ -45,6 +45,8 @@ validation_every_steps = 20
 
 ### Functions ###
 
+#change
+
 def imgs_annot_aggregator(iter):
     print("Running imgs_annot_aggregator...")
     final = np.zeros((iter,4))
