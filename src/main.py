@@ -41,17 +41,13 @@ data = json.load(f)
 assert len(train_im_list) == len(data['images'])
 
 ### Hyperparameters #############
-
-
 def loss_fn(output, target):
     num_planes = torch.sum(target)
     return torch.where(condition=num_planes > 0,
                        x=torch.mean((output - target) ** 2) /
                        torch.sum(target),
                        y=torch.mean((output - target) ** 2))
-
-
-s = 4
+s = 10
 lr = 0.0001
 batchsize = 64
 num_epochs = 2
@@ -59,7 +55,6 @@ validation_every_steps = 1
 #################################
 
 ### Functions ###
-
 
 def create_mask(bb, x):
     """Creates a mask for the bounding box of same shape as image"""
@@ -69,11 +64,9 @@ def create_mask(bb, x):
     Y[bb[1]:(bb[1]+bb[3]), bb[0]:(bb[0]+bb[2])] = 1.
     return Y
 
-
 def create_bb_array(x):
     """Generates bounding box array from a train_df row"""
     return np.array([x[2], x[3], x[4], x[5]])
-
 
 def mask_to_bb(Y):
     """Convert mask Y to a bounding box, assumes 0 as background nonzero object"""
@@ -86,10 +79,8 @@ def mask_to_bb(Y):
     right_col = np.max(cols)
     return np.array([left_col, top_row, right_col, bottom_row], dtype=np.float32)
 
-
 def crop(im, r, c, target_r, target_c):
     return im[r:r+target_r, c:c+target_c]
-
 
 def random_crop(x, r_pix=8):
     """ Returns a random crop"""
@@ -101,23 +92,19 @@ def random_crop(x, r_pix=8):
     start_c = np.floor(2*rand_c*c_pix).astype(int)
     return crop(x, start_r, start_c, r-2*r_pix, c-2*c_pix)
 
-
 def center_crop(x, r_pix=8):
     r, c, *_ = x.shape
     c_pix = round(r_pix*c/r)
     return crop(x, r_pix, c_pix, r-2*r_pix, c-2*c_pix)
-
 
 def create_corner_rect(bb, color='red'):
     bb = np.array(bb, dtype=np.float32)
     return plt.Rectangle((bb[0], bb[1]), bb[2]-bb[0], bb[3]-bb[1], color=color,
                          fill=False, lw=1)
 
-
 def show_corner_bb(im, bb):
     plt.imshow(im)
     plt.gca().add_patch(create_corner_rect(bb))
-
 
 def image_merger(result_data):
     final_data_frame = pd.DataFrame()
@@ -150,7 +137,6 @@ def image_merger(result_data):
                 {'path': img_path_test, 'final_bbx': final_bbxs}, ignore_index=True)
 
     return final_data_frame
-
 
 ### Processing ###
 with open(annot_dir) as json_data:
