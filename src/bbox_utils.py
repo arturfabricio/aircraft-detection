@@ -80,6 +80,6 @@ def transformsImg(path, new_size):
     return x
 
 def transformsBbox(bboxs,ratio):
-    return list(map(lambda bbox:[int(bbox[0]/ratio),int(bbox[1]/ratio),int(bbox[2]/ratio),int(bbox[3]/ratio)],bboxs))
+    return list(map(lambda bbox:[int(bbox[0]/ratio),int(bbox[1]/ratio),int(bbox[0]/ratio)+int(bbox[2]/ratio),int(bbox[1]/ratio)+int(bbox[3]/ratio)],bboxs))
 
 # def rotationImg(img):

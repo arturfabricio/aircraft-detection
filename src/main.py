@@ -41,12 +41,12 @@ data = json.load(f)
 assert len(train_im_list) == len(data['images'])
 
 ### Hyperparameters #############
-s = 15
+s = 4
 lr = 0.0001
 loss_fn = nn.CrossEntropyLoss()
 batchsize = 64
-num_epochs = 500
-validation_every_steps = 20
+num_epochs = 2
+validation_every_steps = 1
 #################################
 
 ### Functions ###
@@ -141,48 +141,6 @@ def image_merger(result_data):
     return final_data_frame
 
 
-def iou(boxA, boxB):
-    xA = max(boxA.arr[0], boxB.arr[0])
-    yA = max(boxA.arr[1], boxB.arr[1])
-    xB = min(boxA.arr[2], boxB.arr[2])
-    yB = min(boxA.arr[3], boxB.arr[3])
-    interArea = max(0, xB - xA + 1) * max(0, yB - yA + 1)
-    boxAArea = (boxA.arr[2] - boxA.arr[0] + 1) * \
-        (boxA.arr[3] - boxA.arr[1] + 1)
-    boxBArea = (boxB.arr[2] - boxB.arr[0] + 1) * \
-        (boxB.arr[3] - boxB.arr[1] + 1)
-    iou = interArea / float(boxAArea + boxBArea - interArea)
-    return iou
-
-# def app_flat(my_array):
-#     out = np.zeros_like(my_array)
-#     idx  = my_array.argmax()
-#     out.flat[idx] = 1
-#     return out
-
-
-def get_vectors_mask_wise(df_final):
-    for_real_tho = pd.DataFrame()
-
-    for l in range(len(df_final['path'])):
-        img_test_path_curr = df_final['path'][l]
-        masks = df_final['final_bbx'][l]
-        vector_f = np.zeros([np.shape(bboxs)[0], ])
-
-        for i in range(len(masks)):
-            temp_vector = []
-            for j in range(len(bboxs)):
-                value = iou(masks[i], bboxs[j])
-                temp_vector.append(value)
-            temp_vector = np.array(temp_vector)
-            # return_temp_vector = app_flat(temp_vector)
-            # vector_f = vector_f + return_temp_vector
-        for_real_tho = for_real_tho.append(
-            {'path': img_test_path_curr, 'vector': temp_vector}, ignore_index=True)
-
-    return for_real_tho
-
-
 ### Processing ###
 with open(annot_dir) as json_data:
     data = json.load(json_data)
@@ -196,7 +154,7 @@ annot_data = annot_data.groupby(['image_id']).agg(
     tuple).applymap(np.array).reset_index()
 
     #applymap(np.array)
-# annot_data.drop(annot_data.index.to_list()[2:],axis=0,inplace=True)
+annot_data.drop(annot_data.index.to_list()[3:],axis=0,inplace=True)
 
 annot_data['path'] = annot_data.apply(
     lambda row: str(train_imgs) + "/"+row['name'][0], axis=1)
@@ -235,7 +193,7 @@ def rotatebbox(bbox,rot):
         if rot == 90:
             newref = np.rot90(ref)
             new_ref_point = np.where(newref == 1)
-            new_bbx.append([int(new_ref_point[1]),int(new_ref_point[0]),int(bbox[i][3]),-int(bbox[i][2])])
+            new_bbx.append([int(new_ref_point[1]),int(new_ref_point[0]),int(bbox[i][3]),int(new_ref_point[0])-int(bbox[i][2])])
         if rot == 180:
             newref = np.rot90(np.rot90(ref))
             new_ref_point = np.where(newref == 1)
@@ -260,303 +218,310 @@ print("Init time: ", datetime.datetime.now())
 annot_data['image'] = annot_data.apply(resize_im_rowwise, axis=1)
 annot_data['bbox'] = annot_data.apply(resize_bbox_rowwise, axis=1)
 
-annot_data_90 = annot_data.copy()
-annot_data_180 = annot_data.copy()
-annot_data_270 = annot_data.copy()
+# annot_data_90 = annot_data.copy()
+# annot_data_180 = annot_data.copy()
+# annot_data_270 = annot_data.copy()
 
-annot_data_90['image'] = annot_data.apply(rotate90img, axis=1)
-annot_data_90['bbox'] = annot_data.apply(rotate90bbox, axis=1)
+# annot_data_90['image'] = annot_data.apply(rotate90img, axis=1)
+# annot_data_90['bbox'] = annot_data.apply(rotate90bbox, axis=1)
 
-annot_data_180['image'] = annot_data.apply(rotate180img, axis=1)
-annot_data_180['bbox'] = annot_data.apply(rotate180bbox, axis=1)
+# annot_data_180['image'] = annot_data.apply(rotate180img, axis=1)
+# annot_data_180['bbox'] = annot_data.apply(rotate180bbox, axis=1)
 
-annot_data_270['image'] = annot_data.apply(rotate270img, axis=1)
-annot_data_270['bbox'] = annot_data.apply(rotate270bbox, axis=1)
+# annot_data_270['image'] = annot_data.apply(rotate270img, axis=1)
+# annot_data_270['bbox'] = annot_data.apply(rotate270bbox, axis=1)
 
-annot_data = annot_data.append(annot_data_90, ignore_index=True)
-annot_data = annot_data.append(annot_data_180, ignore_index=True)
-annot_data = annot_data.append(annot_data_270, ignore_index=True)
+# annot_data = annot_data.append(annot_data_90, ignore_index=True)
+# annot_data = annot_data.append(annot_data_180, ignore_index=True)
+# annot_data = annot_data.append(annot_data_270, ignore_index=True)
 print("End time: ", datetime.datetime.now())
 print(len(annot_data))
-# print(annot_data['bbox'][0])
-# print(annot_data['bbox'][2])
 
-# i =1
+# i = 0
 
 # fig, ax = plt.subplots()
 # ax.imshow(annot_data['image'][i])
 # rect = patches.Rectangle((annot_data['bbox'][i][0][0], annot_data['bbox'][i][0][1]), \
-#     annot_data['bbox'][i][0][2], annot_data['bbox'][i][0][3],linewidth=1, edgecolor='r', facecolor='none')
+#     annot_data['bbox'][i][0][2]-annot_data['bbox'][i][0][0], annot_data['bbox'][i][0][3]-annot_data['bbox'][i][0][1],linewidth=1, edgecolor='r', facecolor='none')
 # ax.add_patch(rect)
 # ax.scatter(annot_data['bbox'][i][0][0], annot_data['bbox'][i][0][1],c='r')
 
 # fig, ax = plt.subplots()
-# ax.imshow(annot_data['image'][i+2])
-# rect = patches.Rectangle((annot_data['bbox'][i+2][0][0], annot_data['bbox'][i+2][0][1]), \
-#     annot_data['bbox'][i+2][0][2], annot_data['bbox'][i+2][0][3],linewidth=1, edgecolor='r', facecolor='none')
+# ax.imshow(annot_data['image'][i+3])
+# rect = patches.Rectangle((annot_data['bbox'][i+3][0][0], annot_data['bbox'][i+3][0][1]), \
+#     annot_data['bbox'][i+3][0][2]-annot_data['bbox'][i+3][0][0],annot_data['bbox'][i+3][0][3]-annot_data['bbox'][i+3][0][1],linewidth=1, edgecolor='r', facecolor='none')
 # ax.add_patch(rect)
-# ax.scatter(annot_data['bbox'][i+2][0][0], annot_data['bbox'][i+2][0][1],c='r')
-
-# fig, ax = plt.subplots()
-# ax.imshow(annot_data['image'][i+4])
-# rect = patches.Rectangle((annot_data['bbox'][i+4][0][0], annot_data['bbox'][i+4][0][1]), \
-#     annot_data['bbox'][i+4][0][2], annot_data['bbox'][i+4][0][3],linewidth=1, edgecolor='r', facecolor='none')
-# ax.add_patch(rect)
-# ax.legend('rot180')
-# ax.scatter(annot_data['bbox'][i+4][0][0], annot_data['bbox'][i+4][0][1],c='r')
+# ax.scatter(annot_data['bbox'][i+3][0][0], annot_data['bbox'][i+3][0][1],c='r')
 
 # fig, ax = plt.subplots()
 # ax.imshow(annot_data['image'][i+6])
 # rect = patches.Rectangle((annot_data['bbox'][i+6][0][0], annot_data['bbox'][i+6][0][1]), \
-#     annot_data['bbox'][i+6][0][2], annot_data['bbox'][i+6][0][3],linewidth=1, edgecolor='r', facecolor='none')
+#     annot_data['bbox'][i+6][0][2]-annot_data['bbox'][i+6][0][0], annot_data['bbox'][i+6][0][3]-annot_data['bbox'][i+6][0][1],linewidth=1, edgecolor='r', facecolor='none')
+# ax.add_patch(rect)
+# ax.legend('rot180')
+# ax.scatter(annot_data['bbox'][i+6][0][0], annot_data['bbox'][i+6][0][1],c='r')
+
+# fig, ax = plt.subplots()
+# ax.imshow(annot_data['image'][i+9])
+# rect = patches.Rectangle((annot_data['bbox'][i+9][0][0], annot_data['bbox'][i+9][0][1]), \
+#     annot_data['bbox'][i+9][0][2]-annot_data['bbox'][i+9][0][0], annot_data['bbox'][i+9][0][3]+annot_data['bbox'][i+9][0][1],linewidth=1, edgecolor='r', facecolor='none')
 # ax.add_patch(rect)
 # ax.legend('rot270')
-# ax.scatter(annot_data['bbox'][i+6][0][0], annot_data['bbox'][i+6][0][1],c='r')
-# plt.show()
+# ax.scatter(annot_data['bbox'][i+9][0][0], annot_data['bbox'][i+9][0][1],c='r')
+#plt.show()
 
 
+bboxs = bbox_utils.generate(s, 130//4, 10, (128,128))
 
+np_bboxs = np.asarray(list(map(lambda BBOX: [BBOX.arr[0],BBOX.arr[1],BBOX.arr[2],BBOX.arr[3]],bboxs)))
 
+def calculate_iou_rowwise(row):
+    target_vector = np.zeros(len(np_bboxs))
+    for bbox in row['bbox']:  
+        # print("np_bboxs: ",np_bboxs)
+        # print("bbox: ",bbox)
+        xA = np.maximum(np_bboxs[:,0], bbox[0])
+        # print("xA: ",xA)
+        yA = np.maximum(np_bboxs[:,1], bbox[1])
+        # print("yA: ",yA)
+        xB = np.minimum(np_bboxs[:,2], bbox[2])
+        # print("xB: ",xB)
+        yB = np.minimum(np_bboxs[:,3], bbox[3])
+        # print("yB: ",yB)
+        interArea = np.maximum(0, xB - xA + 1) * np.maximum(0, yB - yA + 1)
+        # print("interArea: ",interArea)
+        boxAArea = (np_bboxs[:,2] - np_bboxs[:,0] + 1) * \
+            (np_bboxs[:,3] - np_bboxs[:,1] + 1)
+        boxBArea = (bbox[2] - bbox[0] + 1) * \
+            (bbox[3] - bbox[1] + 1)
+        # print("boxAArea ", boxAArea)
+        # print("boxBArea ",boxBArea)
+        iou = np.divide(interArea, (np.subtract(np.add(boxAArea,boxBArea),interArea)))
+        # print("iou ",iou)
+        b = np.zeros_like(iou)
+        b[np.argmax(iou,axis=0)] = 1
+        target_vector = target_vector + b
+        # print("                 ")
+    print(sum(target_vector))
+    return target_vector
 
-# df_final = image_merger(data_frame_int)
-# df_final.head()
-# img_test_path_curr = df_final['path'][0]
-# im, bb = bbox_utils.transformsXY(str(annot_data['file_path'][i]), np.array(
-#     annot_data['bbox'][i]), new_size, ratio)
+annot_data['target_vector'] = annot_data.apply(calculate_iou_rowwise, axis=1)
 
-# bboxs = bbox_utils.generate(s, 130//4, 10, im.shape)
-# for_real_tho = get_vectors_mask_wise(df_final)
+def display_bbox_target_vector(data_frame):
+    fig, ax = plt.subplots()
+    to_draw = np_bboxs[np.array(data_frame['target_vector'][1],dtype=bool)]
 
-# print(for_real_tho.head())
+    ax.imshow(data_frame['image'][1])
+    for bbox in to_draw:
+        rect = patches.Rectangle((bbox[0], bbox[1]), bbox[2]-bbox[0],
+                                    bbox[3]-bbox[1], linewidth=1, edgecolor=bbox_utils.get_random_color(), facecolor='none')
+        ax.add_patch(rect)
+    plt.show()
 
-# for_real_tho = for_real_tho.reset_index()
-# X = for_real_tho['path']
-# Y = for_real_tho['vector']
-# X_train, X_val, y_train, y_val = train_test_split(X, Y, test_size=0.2, random_state=42)
+display_bbox_target_vector(annot_data)
 
-# class AircraftDataset(Dataset):
-#     def __init__(self, paths, y, transforms=False):
-#         self.paths = paths.values
-#         self.y = y.values
-#     def __len__(self):
-#         return len(self.paths)
+annot_data=annot_data.reset_index()
+X = annot_data['image']
+Y = annot_data['target_vector']
+X_train, X_val, y_train, y_val = train_test_split(X, Y, test_size=0.15, random_state=42)
 
-#     def __getitem__(self, idx):
-#         path = self.paths[idx]
-#         y = self.y[idx]
-#         return path, y
+class AircraftDataset(Dataset):
+    def __init__(self, images, y, transforms=False):
+        self.images = images.values
+        self.y = y.values
+    def __len__(self):
+        return len(self.images)
 
-# train_ds = AircraftDataset(X_train,y_train, transforms=True)
-# valid_ds = AircraftDataset(X_val,y_val)
+    def __getitem__(self, idx):
+        path = self.images[idx]
+        y = self.y[idx]
+        return path, y
 
-# batch_size = 64
-# train_dl = DataLoader(train_ds, batch_size=batch_size, shuffle=True, num_workers=0, drop_last=False)
-# valid_dl = DataLoader(valid_ds, batch_size=batch_size, shuffle=False, num_workers=0, drop_last=False)
+train_ds = AircraftDataset(X_train,y_train, transforms=True)
+valid_ds = AircraftDataset(X_val,y_val)
 
-# class AircraftModel(nn.Module):
-#     def __init__(self):
-#         super(AircraftModel, self).__init__()
-#         self.conv = nn.Sequential(
-#             Conv2d(3,192,kernel_size=7,stride=2),
-#             nn.LeakyReLU(0.1),
-#             MaxPool2d(2,2),
-#             Conv2d(192,256,3,1),
-#             nn.LeakyReLU(0.1),
-#             MaxPool2d(2,2),
-#             Conv2d(256,128,1,1),
-#             nn.LeakyReLU(0.1),
-#             Conv2d(128,256,1,1),
-#             nn.LeakyReLU(0.1),
-#             Conv2d(256,256,1,1),
-#             nn.LeakyReLU(0.1),
-#             Conv2d(256,512,1,1),
-#             nn.LeakyReLU(0.1),
-#             MaxPool2d(2,2),
-#             Conv2d(512,256,1,1),
-#             nn.LeakyReLU(0.1),
-#             Conv2d(256,512,1,1),
-#             nn.LeakyReLU(0.1),
-#             Conv2d(512,256,1,1),
-#             nn.LeakyReLU(0.1),
-#             Conv2d(256,512,1,1),
-#             nn.LeakyReLU(0.1),
-#             Conv2d(512,256,1,1),
-#             nn.LeakyReLU(0.1),
-#             Conv2d(256,512,1,1),
-#             nn.LeakyReLU(0.1),
-#             Conv2d(512,256,1,1),
-#             nn.LeakyReLU(0.1),
-#             Conv2d(256,512,1,1),
-#             nn.LeakyReLU(0.1),
-#             Conv2d(512,1024,1,1),
-#             nn.LeakyReLU(0.1),
-#             Conv2d(1024,512,1,1),
-#             nn.LeakyReLU(0.1),
-#             # MaxPool2d(2,2),
-#             Conv2d(512,1024,1,1),
-#             nn.LeakyReLU(0.1),
-#             Conv2d(1024,512,1,1),
-#             nn.LeakyReLU(0.1),
-#             Conv2d(512,1024,1,1),
-#             nn.LeakyReLU(0.1),
-#             Conv2d(1024,512,1,1),
-#             nn.LeakyReLU(0.1),
-#             Conv2d(512,1024,1,1),
-#             nn.LeakyReLU(0.1),
-#             Conv2d(1024,1024,1,2),
-#             nn.LeakyReLU(0.1),
-#             Conv2d(1024,1024,1,1),
-#             nn.LeakyReLU(0.1),
-#             Conv2d(1024,1024,1,1),
-#             nn.LeakyReLU(0.1),
-#             nn.Flatten(start_dim=1)
-#         )
+batch_size = 64
+train_dl = DataLoader(train_ds, batch_size=batch_size, shuffle=True, num_workers=0, drop_last=False)
+valid_dl = DataLoader(valid_ds, batch_size=batch_size, shuffle=False, num_workers=0, drop_last=False)
 
-#         self.connected = nn.Sequential(
-#             nn.Linear(128*128,out_features=1024, bias=False),
-#             nn.ReLU(),
-#             nn.Linear(1024,out_features=len(bboxs), bias=False)
-#         )
+class AircraftModel(nn.Module):
+    def __init__(self):
+        super(AircraftModel, self).__init__()
+        self.conv = nn.Sequential(
+            Conv2d(3,192,kernel_size=7,stride=2),
+            nn.LeakyReLU(0.1),
+            MaxPool2d(2,2),
+            Conv2d(192,256,3,1),
+            nn.LeakyReLU(0.1),
+            MaxPool2d(2,2),
+            # Conv2d(256,128,1,1),
+            # nn.LeakyReLU(0.1),
+            # Conv2d(128,256,1,1),
+            # nn.LeakyReLU(0.1),
+            # Conv2d(256,256,1,1),
+            # nn.LeakyReLU(0.1),
+            # Conv2d(256,512,1,1),
+            # nn.LeakyReLU(0.1),
+            # MaxPool2d(2,2),
+            # Conv2d(512,256,1,1),
+            # nn.LeakyReLU(0.1),
+            # Conv2d(256,512,1,1),
+            # nn.LeakyReLU(0.1),
+            # Conv2d(512,256,1,1),
+            # nn.LeakyReLU(0.1),
+            # Conv2d(256,512,1,1),
+            # nn.LeakyReLU(0.1),
+            # Conv2d(512,256,1,1),
+            # nn.LeakyReLU(0.1),
+            # Conv2d(256,512,1,1),
+            # nn.LeakyReLU(0.1),
+            # Conv2d(512,256,1,1),
+            # nn.LeakyReLU(0.1),
+            # Conv2d(256,512,1,1),
+            # nn.LeakyReLU(0.1),
+            # Conv2d(512,1024,1,1),
+            # nn.LeakyReLU(0.1),
+            # Conv2d(1024,512,1,1),
+            # nn.LeakyReLU(0.1),
+            # # MaxPool2d(2,2),
+            # Conv2d(512,1024,1,1),
+            # nn.LeakyReLU(0.1),
+            # Conv2d(1024,512,1,1),
+            # nn.LeakyReLU(0.1),
+            # Conv2d(512,1024,1,1),
+            # nn.LeakyReLU(0.1),
+            # Conv2d(1024,512,1,1),
+            # nn.LeakyReLU(0.1),
+            # Conv2d(512,1024,1,1),
+            # nn.LeakyReLU(0.1),
+            # Conv2d(1024,1024,1,2),
+            # nn.LeakyReLU(0.1),
+            # Conv2d(1024,1024,1,1),
+            # nn.LeakyReLU(0.1),
+            Conv2d(256,512,1,1),
+            nn.LeakyReLU(0.1),
+            nn.Flatten(start_dim=1),
+            nn.Dropout(0.5)
+        )
 
-#     def forward(self, x):
-#         x = self.conv(x)
-#         x = self.connected(x)
-#         return x
+        self.connected = nn.Sequential(
+            nn.LazyLinear(out_features=256),   #(128*128,out_features=1024, bias=False),
+            nn.ReLU(),
+            nn.Linear(256,out_features=len(bboxs), bias=False)
+        )
 
-# model = AircraftModel()
-# device = torch.device('cuda')  # use cuda or cpu
-# print("Used device: ", device)
-# model.to(device)
-# print(model)
+    def forward(self, x):
+        x = self.conv(x)
+        x = self.connected(x)
+        return x
 
-# out = model(torch.randn(batchsize,3, 128, 128, device=device))
-# # print("Output shape:", out.size())
-# # print(f"Output logits:\n{out.detach().cpu().numpy()}")
-# optimizer = optim.Adam(model.parameters(), lr)
+model = AircraftModel()
+device = torch.device('cuda')  # use cuda or cpu
+print("Used device: ", device)
+model.to(device)
+print(model)
 
-# convert_tensor = transforms.ToTensor()
-# step = 0
-# model.train()
+out = model(torch.randn(batchsize,3, 128, 128, device=device))
+# print("Output shape:", out.size())
+# print(f"Output logits:\n{out.detach().cpu().numpy()}")
+optimizer = optim.Adam(model.parameters(), lr)
 
-# train_accuracies = []
-# valid_accuracies = []
+convert_tensor = transforms.ToTensor()
+step = 0
+model.train()
 
-# start_time = str(time.time())
+train_accuracies = []
+valid_accuracies = []
 
-# titles = ['learning rate','batchsize', 'epochs', 'train_images','val_images', 's', 'loss_fn', 'optimizer']
-# hyper = [lr, batchsize,num_epochs,len(train_ds),len(valid_ds),s,loss_fn,optimizer]
+start_time = str(time.time())
 
-# PATH_HYPER = os.path.join(dir_root, f'../AIRCRAFT/data/model/logs/hyper_{start_time}.csv')
-# with open(PATH_HYPER, 'a', newline='') as myfile:
-#             wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
-#             wr.writerow(titles)
-#             wr.writerow(hyper)
+titles = ['learning rate','batchsize', 'epochs', 'train_images','val_images', 's', 'loss_fn', 'optimizer']
+hyper = [lr, batchsize,num_epochs,len(train_ds),len(valid_ds),s,loss_fn,optimizer]
+PATH_HYPER = Path(dir_root, './data/model/logs/hyper_{start_time}.csv')
+with open(PATH_HYPER, 'a', newline='') as myfile:
+            wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
+            wr.writerow(titles)
+            wr.writerow(hyper)
 
-# for epoch in range(num_epochs):
-#     print("Epoch number: ", epoch)
+for epoch in range(num_epochs):
+    print("Epoch number: ", epoch)
 
-#     train_accuracies_batches = []
-#     for inputs, targets in train_dl:
-#         new_inputs = []
-#         for i in range(len(inputs)):
-#             im = bbox_utils.transformsXY_im(inputs[i],new_size)
-#             tensor = convert_tensor(im)
-#             new_inputs.append(tensor)
+    train_accuracies_batches = []
+    for inputs, targets in train_dl:
+        new_inputs = []
+        for i in range(len(inputs)):
+            im = bbox_utils.transformsXY_im(inputs[i],new_size)
+            tensor = convert_tensor(im)
+            new_inputs.append(tensor)
 
-#         new_inputs = torch.stack(tuple(new_inputs),0)
-#         new_inputs, targets = new_inputs.to(device), targets.to(device)
+        new_inputs = torch.stack(tuple(new_inputs),0)
+        new_inputs, targets = new_inputs.to(device), targets.to(device)
 
-#         # Forward pass, compute gradients, perform one training step.
-#         optimizer.zero_grad()
-#         output = model(new_inputs)
-#         loss = loss_fn(output, targets)
-#         loss.backward()
-#         optimizer.step()
+        # Forward pass, compute gradients, perform one training step.
+        optimizer.zero_grad()
+        output = model(new_inputs)
+        loss = loss_fn(output, targets)
+        loss.backward()
+        optimizer.step()
 
-#         # Increment step counter
-#         step += 1
+        # Increment step counter
+        step += 1
 
-#         # Compute accuracy.
-#         # we use output & target
+        # Compute accuracy.
+        # we use output & target
 
-# subtra = torch.subtract(output,targets)
-# squared = torch.square(subtra)
-# acc = torch.sum(squared)
+        subtra = torch.subtract(output,targets)
+        squared = torch.square(subtra)
+        acc = torch.sum(squared)
 
-# print("targets: ", targets)
-# print("output: ", output)
+        print("targets: ", targets)
+        print("output: ", output)
 
-# correct_match = 0
-# correct_match += (output == targets).float().sum()
-# accuracy_train = 100 * correct_match / len(inputs)
-# print("accuracy_val: ", float(accuracy_train.numpy()))
-# # acc.cpu().detach().numpy())
-# train_accuracies_batches.append(float(accuracy_train.cpu().numpy()))
+        correct_match = 0
+        correct_match += (output == targets).float().sum()
+        accuracy_train = 100 * correct_match / len(inputs)
+        print("accuracy_val: ", float(accuracy_train.numpy()))
+        # acc.cpu().detach().numpy())
+        train_accuracies_batches.append(float(accuracy_train.cpu().numpy()))
 
-# PATH_TRAIN = os.path.join(
-#     dir_root, f'../AIRCRAFT/data/model/logs/logs_train_{start_time}.csv')
-# with open(PATH_TRAIN, 'a', newline='') as myfile:
-#     wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
-#     wr.writerow([accuracy_train.cpu().detach().numpy(),
-#                  loss.cpu().detach().numpy()])  # [int(acc)])
+        PATH_TRAIN = Path(dir_root, './data/model/logs/logs_train_{start_time}.csv')
+        with open(PATH_TRAIN, 'a', newline='') as myfile:
+            wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
+            wr.writerow([accuracy_train.cpu().detach().numpy(),
+                        loss.cpu().detach().numpy()])  # [int(acc)])
 
-#         if step % validation_every_steps == 0:
+            if step % validation_every_steps == 0:
 
-#             # Append average training accuracy to list.
-#             train_accuracies.append(np.mean(train_accuracies_batches))
+                with torch.no_grad():
+                    model.eval()
+                    for inputs, targets in valid_dl:
+                        new_inputs = []
 
-#             train_accuracies_batches = []
+                        for i in range(len(inputs)):
+                            im = bbox_utils.transformsXY_im(inputs[i],new_size)
+                            tensor = convert_tensor(im)
+                            new_inputs.append(tensor)
 
-#             # Compute accuracies on validation set.
-#             valid_accuracies_batches = []
-#             with torch.no_grad():
-#                 model.eval()
-#                 for inputs, targets in valid_dl:
-#                     new_inputs = []
+                        new_inputs = torch.stack(tuple(new_inputs),0)
+                        new_inputs, targets = new_inputs.to(device), targets.to(device)
 
-#                     for i in range(len(inputs)):
-#                         im = bbox_utils.transformsXY_im(inputs[i],new_size)
-#                         tensor = convert_tensor(im)
-#                         new_inputs.append(tensor)
+                        output = model(new_inputs)
+                        loss = loss_fn(output, targets)
 
-#                     new_inputs = torch.stack(tuple(new_inputs),0)
-#                     new_inputs, targets = new_inputs.to(device), targets.to(device)
+                        print("targets: ",targets)
+                        print("output: ",output)
 
-#                     output = model(new_inputs)
-#                     loss = loss_fn(output, targets)
+                        correct_match = 0
+                        correct_match += (output == targets).float().sum()
+                        accuracy_val = 100 * correct_match / len(inputs)
+                        print("accuracy_val: ", float(accuracy_val.numpy()))
+                        train_accuracies_batches.append(float(accuracy_val.cpu().detach().numpy()))#acc.cpu().detach().numpy())
 
-#                     print("targets: ",targets)
-#                     print("output: ",output)
-
-#                     correct_match = 0
-#                     correct_match += (output == targets).float().sum()
-#                     accuracy_val = 100 * correct_match / len(inputs)
-#                     print("accuracy_val: ", float(accuracy_val.numpy()))
-#                     train_accuracies_batches.append(float(accuracy_val.cpu().detach().numpy()))#acc.cpu().detach().numpy())
-
-#                     PATH_TRAIN = os.path.join(dir_root, f'../AIRCRAFT/data/model/logs/logs_val_{start_time}.csv')
-#                     with open(PATH_TRAIN, 'a', newline='') as myfile:
-#                         wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
-#                         wr.writerow([accuracy_val.cpu().detach().numpy(), loss.cpu().detach().numpy()])#[int(acc)])
-
-#                     # subtra = torch.subtract(output,targets)
-#                     # squared = torch.square(subtra)
-#                     # acc = torch.sum(squared)/len(bboxs)
-
-#                     # valid_accuracies_batches.append(acc.cpu().detach().numpy()* len(inputs))
-
-#                     # PATH_VAL = os.path.join(dir_root, f'../AIRCRAFT/data/model/logs/logs_val_{start_time}.csv')
-#                     # with open(PATH_VAL, 'a', newline='') as myfile:
-#                     #     wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
-#                     #     wr.writerow([int(acc)])
-#                     # Multiply by len(x) because the final batch of DataLoader may be smaller (drop_last=False).
-#                 model.train()
-
-#             # Append average validation accuracy to list.
-#             valid_accuracies.append(np.sum(valid_accuracies_batches) / len(X_train))
-
-#             print(f"Step {step:<5}   training accuracy: {train_accuracies[-1]}")
-#             print(f"             test accuracy: {valid_accuracies[-1]}")
+                        PATH_TRAIN = Path(dir_root, './data/model/logs/logs_val_{start_time}.csv')
+                        with open(PATH_TRAIN, 'a', newline='') as myfile:
+                            wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
+                            wr.writerow([accuracy_val.cpu().detach().numpy(), loss.cpu().detach().numpy()])#[int(acc)])
+                    model.train()
 
 print("Finished training.")
 
