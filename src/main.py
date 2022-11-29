@@ -45,66 +45,6 @@ validation_every_steps = 20
 
 ### Functions ###
 
-#change
-
-def imgs_annot_aggregator(iter):
-    print("Running imgs_annot_aggregator...")
-    final = np.zeros((iter,4))
-    bounding_boxes = []
-    image_names = []
-    instances_img = []
-    amount_matches = []
-    class_type = []
-    for j in range(iter): 
-        instances_img = []                        
-        img = random.sample(train_im_list,1)
-        image_names.append(img[0])
-        for i in range(len(data['categories'])):
-            if [data['categories'][i]['image_fname']] == img:
-                instances_img.append(data['categories'][i]['id'])
-        for l in range(len(instances_img)):
-            for i in range(len(data['categories'])):
-                if data['categories'][i]['id'] == instances_img[l]:
-                    bounding_boxes.append(data['categories'][i]['bbox'])
-                    class_type.append(data['categories'][i]['role'])
-        amount_matches.append(len(instances_img))
-    final = amount_matches, image_names, bounding_boxes, class_type
-    return final, image_names
-
-def bbox_points(data_annot):
-    print("Running bbox_points...")
-    name = []
-    x_org = []
-    y_org = []
-    x_dist = []
-    y_dist = []
-    bbox = []
-    class_type = []
-    file_path = []
-    itr = 0
-    for i in range(len(data_annot[0])):
-        for j in range(data_annot[0][i]):
-            name.append(data_annot[1][i])
-            class_type.append(data_annot[3][i])
-            x_org.append(data_annot[2][j+itr][0])
-            y_org.append(data_annot[2][j+itr][1])
-            x_dist.append(data_annot[2][j+itr][2])
-            y_dist.append(data_annot[2][j+itr][3])
-            bbox.append([data_annot[2][j+itr][0],data_annot[2][j+itr][1],data_annot[2][j+itr][0]+data_annot[2][j+itr][2],data_annot[2][j+itr][1]+data_annot[2][j+itr][3]])
-            file_path.append(os.path.join(train_imgs, data_annot[1][i]))
-        itr = itr + data_annot[0][i]
-    df = pd.DataFrame(
-    {'name': name,
-     'class': class_type,
-     'x_org': x_org,
-     'y_org': y_org,
-     'x_dist': x_dist,
-     'y_dist': y_dist,
-     'bbox': bbox,
-     'file_path': file_path
-    })
-    return df
-
 def create_mask(bb, x):
     """Creates a mask for the bounding box of same shape as image"""
     rows,cols,*_ = x.shape
@@ -226,22 +166,19 @@ def accuracy(target, pred):
     return metrics.accuracy_score(target.detach().cpu().numpy(), pred.detach().cpu().numpy())
 
 ### Processing ###
-final, img_name = imgs_annot_aggregator(1)
-result = bbox_points(final)
-final_data, img_name_data = imgs_annot_aggregator(len(train_im_list))
-result_data = bbox_points(final_data)
-result_data.head()
+with open(annot_dir) as json_data:
+    data = json.load(json_data)
 
-class_dict = {'Small Civil Transport/Utility': 0, 
-              'Medium Civil Transport/Utility': 1, 
-              'Large Civil Transport/Utility': 2, 
-              "Military Transport/Utility/AWAC": 3,
-              "Military Fighter/Interceptor/Attack": 4,
-              "Military Bomber": 5,
-              "Military Trainer": 6
-              }
+annot_data = pd.DataFrame(data['categories'])
+annot_data.drop(['loc_id','cat_id','location','role','role_id','is_plane','num_engines','propulsion','canards','num_tail_fins','wing_position','wing_type','length','wingspan','area','faa_wingspan_class','Public_Train', 'Public_Test', 'partialDec', 'truncated','new_area','area_pixels','id'],axis =1,inplace=True)
+annot_data.rename(columns={"image_fname": "name"},inplace=True)
 
-result_data['class'] = result_data['class'].apply(lambda x: class_dict[x])
+annot_data = annot_data.groupby(['image_id']).agg(tuple).applymap(list).reset_index()
+
+annot_data['path']=annot_data.apply(lambda row: train_imgs + "/"+row['name'][0], axis=1)
+annot_data.drop(['name'],axis=1,inplace=True)
+
+print(annot_data.head())
 
 new_size = 128
 ratio = int(512/new_size)
