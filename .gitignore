@@ -1,12 +1,3 @@
 hyper_1669130453.1663673.csv
-data/model/logs/hyper_1669133986.517416.csv
-data/model/1669133986.517416.pth
-data/model/logs/hyper_1669369185.4485571.csv
-data/model/logs/hyper_1669369220.9164765.csv
-data/model/logs/hyper_1669369260.0582976.csv
-data/model/logs/logs_train_1669133986.517416.csv
-data/model/logs/logs_train_1669369185.4485571.csv
-data/model/logs/logs_train_1669369220.9164765.csv
-data/model/logs/logs_train_1669369260.0582976.csv
-data/model/logs/logs_val_1669133986.517416.csv
-data/model/logs/logs_val_1669369260.0582976.csv
+data/model/*
+src/__pycache__/*
