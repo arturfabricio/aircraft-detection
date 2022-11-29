@@ -72,19 +72,14 @@ def get_random_color():
     h, s, l = random.uniform(0, 1), 1, 0.5
     return colorsys.hls_to_rgb(h, l, s)
 
-
-def transformsXY(path, bb, new_size, ratio):
-    x = cv2.imread(str(path)).astype(np.float32)
+def transformsImg(path, new_size):
+    x = cv2.imread(str(path))
     x = cv2.cvtColor(x, cv2.COLOR_BGR2RGB)/255
-    x = cv2.resize(x,(new_size,new_size) ) 
-    bb[0] = int(bb[0]/ratio)
-    bb[1] = int(bb[1]/ratio)
-    bb[2] = int(bb[2]/ratio)
-    bb[3] = int(bb[3]/ratio)
-    return x, bb 
+    x = cv2.resize(x,(new_size,new_size) )  
 
-def transformsXY_im(path, new_size):
-    x = cv2.imread(str(path)).astype(np.float32)
-    x = cv2.cvtColor(x, cv2.COLOR_BGR2RGB)/255
-    x = cv2.resize(x,(new_size,new_size) ) 
     return x
+
+def transformsBbox(bboxs,ratio):
+    return list(map(lambda bbox:[int(bbox[0]/ratio),int(bbox[1]/ratio),int(bbox[2]/ratio),int(bbox[3]/ratio)],bboxs))
+
+# def rotationImg(img):

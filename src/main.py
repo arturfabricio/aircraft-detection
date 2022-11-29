@@ -25,6 +25,10 @@ import warnings
 from func_utils import *
 import importlib
 from pathlib import Path
+import datetime
+import cv2
+import matplotlib.patches as patches
+import colorsys
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
 dir_root = Path(os.getcwd()).parent
@@ -183,44 +187,66 @@ with open(annot_dir) as json_data:
     data = json.load(json_data)
 
 annot_data = pd.DataFrame(data['categories'])
+annot_data.drop(annot_data.index.to_list()[2:],axis=0,inplace=True)
 annot_data.drop(['loc_id', 'cat_id', 'location', 'role', 'role_id', 'is_plane', 'num_engines', 'propulsion', 'canards', 'num_tail_fins', 'wing_position', 'wing_type',
                 'length', 'wingspan', 'area', 'faa_wingspan_class', 'Public_Train', 'Public_Test', 'partialDec', 'truncated', 'new_area', 'area_pixels', 'id'], axis=1, inplace=True)
 annot_data.rename(columns={"image_fname": "name"}, inplace=True)
 
 annot_data = annot_data.groupby(['image_id']).agg(
-    tuple).applymap(list).reset_index()
+    tuple).applymap(np.array).reset_index()
+
+    #applymap(np.array)
 
 annot_data['path'] = annot_data.apply(
     lambda row: str(train_imgs) + "/"+row['name'][0], axis=1)
-annot_data.drop(['name'], axis=1, inplace=True)
+annot_data.drop(['name','image_id'], axis=1, inplace=True)
 
 print(annot_data.head())
 
 new_size = 128
 ratio = int(512/new_size)
 
-annot_data = annot_data.reset_index()
-X = annot_data[['file_path', 'bbox']]
-Y = annot_data['class']
-data_frame_int = pd.DataFrame()
+## add to pandas df, reduced images, and reduced boudning boxes
+def resize_im_rowwise(row):
+    return bbox_utils.transformsImg(row['path'],new_size)
 
-for i in range(len(annot_data['file_path'])):
-    print(annot_data['file_path'][i])
-    im, bb = bbox_utils.transformsXY(str(annot_data['file_path'][i]), np.array(
-        annot_data['bbox'][i]), new_size, ratio)
-    data_frame_int = data_frame_int.append(
-        {'file_path': annot_data['file_path'][i], 'bbox': bb}, ignore_index=True)
+def resize_bbox_rowwise(row):
+    return bbox_utils.transformsBbox(row['bbox'],ratio)
 
-df_final = image_merger(data_frame_int)
-df_final.head()
-img_test_path_curr = df_final['path'][0]
-im, bb = bbox_utils.transformsXY(str(annot_data['file_path'][i]), np.array(
-    annot_data['bbox'][i]), new_size, ratio)
+print("Init time: ", datetime.datetime.now())
+annot_data['image'] = annot_data.apply(resize_im_rowwise, axis=1)
+annot_data['bbox'] = annot_data.apply(resize_bbox_rowwise, axis=1)
+print("End time: ", datetime.datetime.now())
 
-bboxs = bbox_utils.generate(s, 130//4, 10, im.shape)
-for_real_tho = get_vectors_mask_wise(df_final)
+new_image = np.rot90(annot_data['image'][0])
 
-print(for_real_tho.head())
+
+print(len(annot_data['image']))
+
+fig, ax = plt.subplots()
+ax.imshow(annot_data['image'][0])
+rect = patches.Rectangle((annot_data['bbox'][0][0][0], annot_data['bbox'][0][0][1]), annot_data['bbox'][0][0][2], annot_data['bbox'][0][0][3],linewidth=1, edgecolor='r', facecolor='none')
+ax.add_patch(rect)
+plt.show()
+
+# plt.figure()
+# plt.imshow(new_image)
+# plt.show()
+
+print(annot_data.head())
+
+
+
+# df_final = image_merger(data_frame_int)
+# df_final.head()
+# img_test_path_curr = df_final['path'][0]
+# im, bb = bbox_utils.transformsXY(str(annot_data['file_path'][i]), np.array(
+#     annot_data['bbox'][i]), new_size, ratio)
+
+# bboxs = bbox_utils.generate(s, 130//4, 10, im.shape)
+# for_real_tho = get_vectors_mask_wise(df_final)
+
+# print(for_real_tho.head())
 
 # for_real_tho = for_real_tho.reset_index()
 # X = for_real_tho['path']
