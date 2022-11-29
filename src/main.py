@@ -183,20 +183,20 @@ print(annot_data.head())
 new_size = 128
 ratio = int(512/new_size)
 
-result_data = result_data.reset_index()
-X = result_data[['file_path','bbox']]
-Y = result_data['class']
+annot_data = annot_data.reset_index()
+X = annot_data[['file_path','bbox']]
+Y = annot_data['class']
 data_frame_int = pd.DataFrame()
 
-for i in range(len(result_data['file_path'])):
-    print(result_data['file_path'][i])
-    im, bb = bbox_utils.transformsXY(str(result_data['file_path'][i]), np.array(result_data['bbox'][i]),new_size,ratio)
-    data_frame_int = data_frame_int.append({'file_path': result_data['file_path'][i], 'bbox': bb}, ignore_index=True)
+for i in range(len(annot_data['file_path'])):
+    print(annot_data['file_path'][i])
+    im, bb = bbox_utils.transformsXY(str(annot_data['file_path'][i]), np.array(annot_data['bbox'][i]),new_size,ratio)
+    data_frame_int = data_frame_int.append({'file_path': annot_data['file_path'][i], 'bbox': bb}, ignore_index=True)
 
 df_final = image_merger(data_frame_int)
 df_final.head()
 img_test_path_curr = df_final['path'][0]
-im, bb = bbox_utils.transformsXY(str(result_data['file_path'][i]), np.array(result_data['bbox'][i]),new_size,ratio)
+im, bb = bbox_utils.transformsXY(str(annot_data['file_path'][i]), np.array(annot_data['bbox'][i]),new_size,ratio)
 
 bboxs = bbox_utils.generate(s, 130//4, 10, im.shape)
 for_real_tho = get_vectors_mask_wise(df_final)
