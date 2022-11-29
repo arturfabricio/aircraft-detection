@@ -27,9 +27,9 @@ import importlib
 from pathlib import Path
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
-data_root = os.getcwd()
-train_imgs = Path(data_root, './data/train')
-annot_dir = Path(data_root, './data/annot/rareplanes.json')
+dir_root = Path(os.getcwd()).parent
+train_imgs = Path(dir_root, './data/train')
+annot_dir = Path(dir_root, './data/annot/rareplanes.json')
 train_im_list = [z for z in os.listdir(train_imgs) if z.endswith('.png')]
 f = open(annot_dir)
 data = json.load(f)
@@ -46,7 +46,6 @@ validation_every_steps = 20
 
 ### Functions ###
 
-
 def create_mask(bb, x):
     """Creates a mask for the bounding box of same shape as image"""
     rows, cols, *_ = x.shape
@@ -54,7 +53,6 @@ def create_mask(bb, x):
     bb = bb.astype(int)
     Y[bb[1]:(bb[1]+bb[3]), bb[0]:(bb[0]+bb[2])] = 1.
     return Y
-
 
 def create_bb_array(x):
     """Generates bounding box array from a train_df row"""
@@ -193,7 +191,7 @@ annot_data = annot_data.groupby(['image_id']).agg(
     tuple).applymap(list).reset_index()
 
 annot_data['path'] = annot_data.apply(
-    lambda row: train_imgs + "/"+row['name'][0], axis=1)
+    lambda row: str(train_imgs) + "/"+row['name'][0], axis=1)
 annot_data.drop(['name'], axis=1, inplace=True)
 
 print(annot_data.head())
@@ -341,7 +339,7 @@ print(for_real_tho.head())
 # titles = ['learning rate','batchsize', 'epochs', 'train_images','val_images', 's', 'loss_fn', 'optimizer']
 # hyper = [lr, batchsize,num_epochs,len(train_ds),len(valid_ds),s,loss_fn,optimizer]
 
-# PATH_HYPER = os.path.join(data_root, f'../AIRCRAFT/data/model/logs/hyper_{start_time}.csv')
+# PATH_HYPER = os.path.join(dir_root, f'../AIRCRAFT/data/model/logs/hyper_{start_time}.csv')
 # with open(PATH_HYPER, 'a', newline='') as myfile:
 #             wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
 #             wr.writerow(titles)
@@ -389,7 +387,7 @@ print(for_real_tho.head())
 # train_accuracies_batches.append(float(accuracy_train.cpu().numpy()))
 
 # PATH_TRAIN = os.path.join(
-#     data_root, f'../AIRCRAFT/data/model/logs/logs_train_{start_time}.csv')
+#     dir_root, f'../AIRCRAFT/data/model/logs/logs_train_{start_time}.csv')
 # with open(PATH_TRAIN, 'a', newline='') as myfile:
 #     wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
 #     wr.writerow([accuracy_train.cpu().detach().numpy(),
@@ -429,7 +427,7 @@ print(for_real_tho.head())
 #                     print("accuracy_val: ", float(accuracy_val.numpy()))
 #                     train_accuracies_batches.append(float(accuracy_val.cpu().detach().numpy()))#acc.cpu().detach().numpy())
 
-#                     PATH_TRAIN = os.path.join(data_root, f'../AIRCRAFT/data/model/logs/logs_val_{start_time}.csv')
+#                     PATH_TRAIN = os.path.join(dir_root, f'../AIRCRAFT/data/model/logs/logs_val_{start_time}.csv')
 #                     with open(PATH_TRAIN, 'a', newline='') as myfile:
 #                         wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
 #                         wr.writerow([accuracy_val.cpu().detach().numpy(), loss.cpu().detach().numpy()])#[int(acc)])
@@ -440,7 +438,7 @@ print(for_real_tho.head())
 
 #                     # valid_accuracies_batches.append(acc.cpu().detach().numpy()* len(inputs))
 
-#                     # PATH_VAL = os.path.join(data_root, f'../AIRCRAFT/data/model/logs/logs_val_{start_time}.csv')
+#                     # PATH_VAL = os.path.join(dir_root, f'../AIRCRAFT/data/model/logs/logs_val_{start_time}.csv')
 #                     # with open(PATH_VAL, 'a', newline='') as myfile:
 #                     #     wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
 #                     #     wr.writerow([int(acc)])
@@ -455,5 +453,5 @@ print(for_real_tho.head())
 
 print("Finished training.")
 
-# #PATH = os.path.join(data_root, f'../AIRCRAFT/data/model/{start_time}.pth')
+# #PATH = os.path.join(dir_root, f'../AIRCRAFT/data/model/{start_time}.pth')
 # #torch.save(model, PATH)
