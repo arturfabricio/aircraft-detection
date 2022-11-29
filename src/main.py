@@ -29,6 +29,7 @@ import datetime
 import cv2
 import matplotlib.patches as patches
 import colorsys
+import math
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
 dir_root = Path(os.getcwd()).parent
@@ -187,7 +188,6 @@ with open(annot_dir) as json_data:
     data = json.load(json_data)
 
 annot_data = pd.DataFrame(data['categories'])
-annot_data.drop(annot_data.index.to_list()[2:],axis=0,inplace=True)
 annot_data.drop(['loc_id', 'cat_id', 'location', 'role', 'role_id', 'is_plane', 'num_engines', 'propulsion', 'canards', 'num_tail_fins', 'wing_position', 'wing_type',
                 'length', 'wingspan', 'area', 'faa_wingspan_class', 'Public_Train', 'Public_Test', 'partialDec', 'truncated', 'new_area', 'area_pixels', 'id'], axis=1, inplace=True)
 annot_data.rename(columns={"image_fname": "name"}, inplace=True)
@@ -196,10 +196,14 @@ annot_data = annot_data.groupby(['image_id']).agg(
     tuple).applymap(np.array).reset_index()
 
     #applymap(np.array)
+# annot_data.drop(annot_data.index.to_list()[2:],axis=0,inplace=True)
 
 annot_data['path'] = annot_data.apply(
     lambda row: str(train_imgs) + "/"+row['name'][0], axis=1)
 annot_data.drop(['name','image_id'], axis=1, inplace=True)
+
+# annot_data['bbox'] = annot_data.apply(
+#     lambda row: row['bbox'].squeeze(), axis=1)
 
 print(annot_data.head())
 
@@ -213,27 +217,104 @@ def resize_im_rowwise(row):
 def resize_bbox_rowwise(row):
     return bbox_utils.transformsBbox(row['bbox'],ratio)
 
+def rotate90img(row):
+    return np.rot90(row['image'])
+
+def rotate180img(row):
+    return np.rot90(np.rot90(row['image']))
+
+def rotate270img(row):
+    return np.rot90((row['image']),k=-1)
+
+def rotatebbox(bbox,rot):
+    new_bbx = []
+    for i in range(len(bbox)):
+        ref = np.zeros([new_size,new_size])
+        ox, oy = bbox[i][0],bbox[i][1]
+        ref[oy,ox] = 1
+        if rot == 90:
+            newref = np.rot90(ref)
+            new_ref_point = np.where(newref == 1)
+            new_bbx.append([int(new_ref_point[1]),int(new_ref_point[0]),int(bbox[i][3]),-int(bbox[i][2])])
+        if rot == 180:
+            newref = np.rot90(np.rot90(ref))
+            new_ref_point = np.where(newref == 1)
+            new_bbx.append([int(new_ref_point[1]),int(new_ref_point[0]),-int(bbox[i][2]),-int(bbox[i][3])])
+        if rot == 270:
+            newref = np.rot90(ref,k=-1)
+            new_ref_point = np.where(newref == 1)
+            new_bbx.append([int(new_ref_point[1]),int(new_ref_point[0]),-int(bbox[i][3]),int(bbox[i][2])])
+    return new_bbx
+
+def rotate90bbox(row):
+    return rotatebbox(row['bbox'],90)
+
+def rotate180bbox(row):
+    return rotatebbox(row['bbox'],180)
+
+def rotate270bbox(row):
+    return rotatebbox(row['bbox'],270)
+
+print(len(annot_data))
 print("Init time: ", datetime.datetime.now())
 annot_data['image'] = annot_data.apply(resize_im_rowwise, axis=1)
 annot_data['bbox'] = annot_data.apply(resize_bbox_rowwise, axis=1)
+
+annot_data_90 = annot_data.copy()
+annot_data_180 = annot_data.copy()
+annot_data_270 = annot_data.copy()
+
+annot_data_90['image'] = annot_data.apply(rotate90img, axis=1)
+annot_data_90['bbox'] = annot_data.apply(rotate90bbox, axis=1)
+
+annot_data_180['image'] = annot_data.apply(rotate180img, axis=1)
+annot_data_180['bbox'] = annot_data.apply(rotate180bbox, axis=1)
+
+annot_data_270['image'] = annot_data.apply(rotate270img, axis=1)
+annot_data_270['bbox'] = annot_data.apply(rotate270bbox, axis=1)
+
+annot_data = annot_data.append(annot_data_90, ignore_index=True)
+annot_data = annot_data.append(annot_data_180, ignore_index=True)
+annot_data = annot_data.append(annot_data_270, ignore_index=True)
 print("End time: ", datetime.datetime.now())
+print(len(annot_data))
+# print(annot_data['bbox'][0])
+# print(annot_data['bbox'][2])
 
-new_image = np.rot90(annot_data['image'][0])
+# i =1
 
+# fig, ax = plt.subplots()
+# ax.imshow(annot_data['image'][i])
+# rect = patches.Rectangle((annot_data['bbox'][i][0][0], annot_data['bbox'][i][0][1]), \
+#     annot_data['bbox'][i][0][2], annot_data['bbox'][i][0][3],linewidth=1, edgecolor='r', facecolor='none')
+# ax.add_patch(rect)
+# ax.scatter(annot_data['bbox'][i][0][0], annot_data['bbox'][i][0][1],c='r')
 
-print(len(annot_data['image']))
+# fig, ax = plt.subplots()
+# ax.imshow(annot_data['image'][i+2])
+# rect = patches.Rectangle((annot_data['bbox'][i+2][0][0], annot_data['bbox'][i+2][0][1]), \
+#     annot_data['bbox'][i+2][0][2], annot_data['bbox'][i+2][0][3],linewidth=1, edgecolor='r', facecolor='none')
+# ax.add_patch(rect)
+# ax.scatter(annot_data['bbox'][i+2][0][0], annot_data['bbox'][i+2][0][1],c='r')
 
-fig, ax = plt.subplots()
-ax.imshow(annot_data['image'][0])
-rect = patches.Rectangle((annot_data['bbox'][0][0][0], annot_data['bbox'][0][0][1]), annot_data['bbox'][0][0][2], annot_data['bbox'][0][0][3],linewidth=1, edgecolor='r', facecolor='none')
-ax.add_patch(rect)
-plt.show()
+# fig, ax = plt.subplots()
+# ax.imshow(annot_data['image'][i+4])
+# rect = patches.Rectangle((annot_data['bbox'][i+4][0][0], annot_data['bbox'][i+4][0][1]), \
+#     annot_data['bbox'][i+4][0][2], annot_data['bbox'][i+4][0][3],linewidth=1, edgecolor='r', facecolor='none')
+# ax.add_patch(rect)
+# ax.legend('rot180')
+# ax.scatter(annot_data['bbox'][i+4][0][0], annot_data['bbox'][i+4][0][1],c='r')
 
-# plt.figure()
-# plt.imshow(new_image)
+# fig, ax = plt.subplots()
+# ax.imshow(annot_data['image'][i+6])
+# rect = patches.Rectangle((annot_data['bbox'][i+6][0][0], annot_data['bbox'][i+6][0][1]), \
+#     annot_data['bbox'][i+6][0][2], annot_data['bbox'][i+6][0][3],linewidth=1, edgecolor='r', facecolor='none')
+# ax.add_patch(rect)
+# ax.legend('rot270')
+# ax.scatter(annot_data['bbox'][i+6][0][0], annot_data['bbox'][i+6][0][1],c='r')
 # plt.show()
 
-print(annot_data.head())
+
 
 
 
