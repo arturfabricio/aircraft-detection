@@ -43,13 +43,19 @@ assert len(train_im_list) == len(data['images'])
 ### Hyperparameters #############
 s = 4
 lr = 0.0001
-loss_fn = nn.CrossEntropyLoss()
+
+
+def loss_fn(output, target): return torch.mean(
+    (output - target) ** 2) / torch.sum(target)
+
+
 batchsize = 64
 num_epochs = 2
 validation_every_steps = 1
 #################################
 
 ### Functions ###
+
 
 def create_mask(bb, x):
     """Creates a mask for the bounding box of same shape as image"""
@@ -58,6 +64,7 @@ def create_mask(bb, x):
     bb = bb.astype(int)
     Y[bb[1]:(bb[1]+bb[3]), bb[0]:(bb[0]+bb[2])] = 1.
     return Y
+
 
 def create_bb_array(x):
     """Generates bounding box array from a train_df row"""
@@ -153,12 +160,12 @@ annot_data.rename(columns={"image_fname": "name"}, inplace=True)
 annot_data = annot_data.groupby(['image_id']).agg(
     tuple).applymap(np.array).reset_index()
 
-    #applymap(np.array)
-annot_data.drop(annot_data.index.to_list()[3:],axis=0,inplace=True)
+# applymap(np.array)
+annot_data.drop(annot_data.index.to_list()[3:], axis=0, inplace=True)
 
 annot_data['path'] = annot_data.apply(
     lambda row: str(train_imgs) + "/"+row['name'][0], axis=1)
-annot_data.drop(['name','image_id'], axis=1, inplace=True)
+annot_data.drop(['name', 'image_id'], axis=1, inplace=True)
 
 # annot_data['bbox'] = annot_data.apply(
 #     lambda row: row['bbox'].squeeze(), axis=1)
@@ -168,50 +175,64 @@ print(annot_data.head())
 new_size = 128
 ratio = int(512/new_size)
 
-## add to pandas df, reduced images, and reduced boudning boxes
+# add to pandas df, reduced images, and reduced boudning boxes
+
+
 def resize_im_rowwise(row):
-    return bbox_utils.transformsImg(row['path'],new_size)
+    return bbox_utils.transformsImg(row['path'], new_size)
+
 
 def resize_bbox_rowwise(row):
-    return bbox_utils.transformsBbox(row['bbox'],ratio)
+    return bbox_utils.transformsBbox(row['bbox'], ratio)
+
 
 def rotate90img(row):
     return np.rot90(row['image'])
 
+
 def rotate180img(row):
     return np.rot90(np.rot90(row['image']))
 
-def rotate270img(row):
-    return np.rot90((row['image']),k=-1)
 
-def rotatebbox(bbox,rot):
+def rotate270img(row):
+    return np.rot90((row['image']), k=-1)
+
+
+def rotatebbox(bbox, rot):
     new_bbx = []
     for i in range(len(bbox)):
-        ref = np.zeros([new_size,new_size])
-        ox, oy = bbox[i][0],bbox[i][1]
-        ref[oy,ox] = 1
+        ref = np.zeros([new_size, new_size])
+        ox, oy = bbox[i][0], bbox[i][1]
+        ref[oy, ox] = 1
         if rot == 90:
             newref = np.rot90(ref)
             new_ref_point = np.where(newref == 1)
-            new_bbx.append([int(new_ref_point[1]),int(new_ref_point[0]),int(bbox[i][3]),int(new_ref_point[0])-int(bbox[i][2])])
+            new_bbx.append([int(new_ref_point[1]), int(new_ref_point[0]), int(
+                bbox[i][3]), int(new_ref_point[0])-int(bbox[i][2])])
         if rot == 180:
             newref = np.rot90(np.rot90(ref))
             new_ref_point = np.where(newref == 1)
-            new_bbx.append([int(new_ref_point[1]),int(new_ref_point[0]),-int(bbox[i][2]),-int(bbox[i][3])])
+            new_bbx.append([int(new_ref_point[1]), int(
+                new_ref_point[0]), -int(bbox[i][2]), -int(bbox[i][3])])
         if rot == 270:
-            newref = np.rot90(ref,k=-1)
+            newref = np.rot90(ref, k=-1)
             new_ref_point = np.where(newref == 1)
-            new_bbx.append([int(new_ref_point[1]),int(new_ref_point[0]),-int(bbox[i][3]),int(bbox[i][2])])
+            new_bbx.append([int(new_ref_point[1]), int(
+                new_ref_point[0]), -int(bbox[i][3]), int(bbox[i][2])])
     return new_bbx
 
+
 def rotate90bbox(row):
-    return rotatebbox(row['bbox'],90)
+    return rotatebbox(row['bbox'], 90)
+
 
 def rotate180bbox(row):
-    return rotatebbox(row['bbox'],180)
+    return rotatebbox(row['bbox'], 180)
+
 
 def rotate270bbox(row):
-    return rotatebbox(row['bbox'],270)
+    return rotatebbox(row['bbox'], 270)
+
 
 print(len(annot_data))
 print("Init time: ", datetime.datetime.now())
@@ -268,67 +289,65 @@ print(len(annot_data))
 # ax.add_patch(rect)
 # ax.legend('rot270')
 # ax.scatter(annot_data['bbox'][i+9][0][0], annot_data['bbox'][i+9][0][1],c='r')
-#plt.show()
+# plt.show()
 
 
-bboxs = bbox_utils.generate(s, 130//4, 10, (128,128))
+bboxs = bbox_utils.generate(s, 130//4, 10, (128, 128))
 
-np_bboxs = np.asarray(list(map(lambda BBOX: [BBOX.arr[0],BBOX.arr[1],BBOX.arr[2],BBOX.arr[3]],bboxs)))
+np_bboxs = np.asarray(list(
+    map(lambda BBOX: [BBOX.arr[0], BBOX.arr[1], BBOX.arr[2], BBOX.arr[3]], bboxs)))
+
 
 def calculate_iou_rowwise(row):
     target_vector = np.zeros(len(np_bboxs))
-    for bbox in row['bbox']:  
-        # print("np_bboxs: ",np_bboxs)
-        # print("bbox: ",bbox)
-        xA = np.maximum(np_bboxs[:,0], bbox[0])
-        # print("xA: ",xA)
-        yA = np.maximum(np_bboxs[:,1], bbox[1])
-        # print("yA: ",yA)
-        xB = np.minimum(np_bboxs[:,2], bbox[2])
-        # print("xB: ",xB)
-        yB = np.minimum(np_bboxs[:,3], bbox[3])
-        # print("yB: ",yB)
+    for bbox in row['bbox']:
+        xA = np.maximum(np_bboxs[:, 0], bbox[0])
+        yA = np.maximum(np_bboxs[:, 1], bbox[1])
+        xB = np.minimum(np_bboxs[:, 2], bbox[2])
+        yB = np.minimum(np_bboxs[:, 3], bbox[3])
         interArea = np.maximum(0, xB - xA + 1) * np.maximum(0, yB - yA + 1)
-        # print("interArea: ",interArea)
-        boxAArea = (np_bboxs[:,2] - np_bboxs[:,0] + 1) * \
-            (np_bboxs[:,3] - np_bboxs[:,1] + 1)
+        boxAArea = (np_bboxs[:, 2] - np_bboxs[:, 0] + 1) * \
+            (np_bboxs[:, 3] - np_bboxs[:, 1] + 1)
         boxBArea = (bbox[2] - bbox[0] + 1) * \
             (bbox[3] - bbox[1] + 1)
-        # print("boxAArea ", boxAArea)
-        # print("boxBArea ",boxBArea)
-        iou = np.divide(interArea, (np.subtract(np.add(boxAArea,boxBArea),interArea)))
-        # print("iou ",iou)
+        iou = np.divide(interArea, (np.subtract(
+            np.add(boxAArea, boxBArea), interArea)))
         b = np.zeros_like(iou)
-        b[np.argmax(iou,axis=0)] = 1
+        b[np.argmax(iou, axis=0)] = 1
         target_vector = target_vector + b
-        # print("                 ")
     print(sum(target_vector))
     return target_vector
 
+
 annot_data['target_vector'] = annot_data.apply(calculate_iou_rowwise, axis=1)
+
 
 def display_bbox_target_vector(data_frame):
     fig, ax = plt.subplots()
-    to_draw = np_bboxs[np.array(data_frame['target_vector'][1],dtype=bool)]
+    to_draw = np_bboxs[np.array(data_frame['target_vector'][1], dtype=bool)]
 
     ax.imshow(data_frame['image'][1])
     for bbox in to_draw:
         rect = patches.Rectangle((bbox[0], bbox[1]), bbox[2]-bbox[0],
-                                    bbox[3]-bbox[1], linewidth=1, edgecolor=bbox_utils.get_random_color(), facecolor='none')
+                                 bbox[3]-bbox[1], linewidth=1, edgecolor=bbox_utils.get_random_color(), facecolor='none')
         ax.add_patch(rect)
     plt.show()
 
+
 display_bbox_target_vector(annot_data)
 
-annot_data=annot_data.reset_index()
+annot_data = annot_data.reset_index()
 X = annot_data['image']
 Y = annot_data['target_vector']
-X_train, X_val, y_train, y_val = train_test_split(X, Y, test_size=0.15, random_state=42)
+X_train, X_val, y_train, y_val = train_test_split(
+    X, Y, test_size=0.15, random_state=42)
+
 
 class AircraftDataset(Dataset):
     def __init__(self, images, y, transforms=False):
         self.images = images.values
         self.y = y.values
+
     def __len__(self):
         return len(self.images)
 
@@ -337,23 +356,27 @@ class AircraftDataset(Dataset):
         y = self.y[idx]
         return path, y
 
-train_ds = AircraftDataset(X_train,y_train, transforms=True)
-valid_ds = AircraftDataset(X_val,y_val)
+
+train_ds = AircraftDataset(X_train, y_train, transforms=True)
+valid_ds = AircraftDataset(X_val, y_val)
 
 batch_size = 64
-train_dl = DataLoader(train_ds, batch_size=batch_size, shuffle=True, num_workers=0, drop_last=False)
-valid_dl = DataLoader(valid_ds, batch_size=batch_size, shuffle=False, num_workers=0, drop_last=False)
+train_dl = DataLoader(train_ds, batch_size=batch_size,
+                      shuffle=True, num_workers=0, drop_last=False)
+valid_dl = DataLoader(valid_ds, batch_size=batch_size,
+                      shuffle=False, num_workers=0, drop_last=False)
+
 
 class AircraftModel(nn.Module):
     def __init__(self):
         super(AircraftModel, self).__init__()
         self.conv = nn.Sequential(
-            Conv2d(3,192,kernel_size=7,stride=2),
+            Conv2d(3, 192, kernel_size=7, stride=2),
             nn.LeakyReLU(0.1),
-            MaxPool2d(2,2),
-            Conv2d(192,256,3,1),
+            MaxPool2d(2, 2),
+            Conv2d(192, 256, 3, 1),
             nn.LeakyReLU(0.1),
-            MaxPool2d(2,2),
+            MaxPool2d(2, 2),
             # Conv2d(256,128,1,1),
             # nn.LeakyReLU(0.1),
             # Conv2d(128,256,1,1),
@@ -398,16 +421,17 @@ class AircraftModel(nn.Module):
             # nn.LeakyReLU(0.1),
             # Conv2d(1024,1024,1,1),
             # nn.LeakyReLU(0.1),
-            Conv2d(256,512,1,1),
+            Conv2d(256, 512, 1, 1),
             nn.LeakyReLU(0.1),
             nn.Flatten(start_dim=1),
             nn.Dropout(0.5)
         )
 
         self.connected = nn.Sequential(
-            nn.LazyLinear(out_features=256),   #(128*128,out_features=1024, bias=False),
+            # (128*128,out_features=1024, bias=False),
+            nn.LazyLinear(out_features=256),
             nn.ReLU(),
-            nn.Linear(256,out_features=len(bboxs), bias=False)
+            nn.Linear(256, out_features=len(bboxs), bias=False)
         )
 
     def forward(self, x):
@@ -415,13 +439,14 @@ class AircraftModel(nn.Module):
         x = self.connected(x)
         return x
 
+
 model = AircraftModel()
 device = torch.device('cuda')  # use cuda or cpu
 print("Used device: ", device)
 model.to(device)
 print(model)
 
-out = model(torch.randn(batchsize,3, 128, 128, device=device))
+out = model(torch.randn(batchsize, 3, 128, 128, device=device))
 # print("Output shape:", out.size())
 # print(f"Output logits:\n{out.detach().cpu().numpy()}")
 optimizer = optim.Adam(model.parameters(), lr)
@@ -435,13 +460,15 @@ valid_accuracies = []
 
 start_time = str(time.time())
 
-titles = ['learning rate','batchsize', 'epochs', 'train_images','val_images', 's', 'loss_fn', 'optimizer']
-hyper = [lr, batchsize,num_epochs,len(train_ds),len(valid_ds),s,loss_fn,optimizer]
+titles = ['learning rate', 'batchsize', 'epochs',
+          'train_images', 'val_images', 's', 'loss_fn', 'optimizer']
+hyper = [lr, batchsize, num_epochs, len(
+    train_ds), len(valid_ds), s, loss_fn, optimizer]
 PATH_HYPER = Path(dir_root, './data/model/logs/hyper_{start_time}.csv')
 with open(PATH_HYPER, 'a', newline='') as myfile:
-            wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
-            wr.writerow(titles)
-            wr.writerow(hyper)
+    wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
+    wr.writerow(titles)
+    wr.writerow(hyper)
 
 for epoch in range(num_epochs):
     print("Epoch number: ", epoch)
@@ -450,11 +477,11 @@ for epoch in range(num_epochs):
     for inputs, targets in train_dl:
         new_inputs = []
         for i in range(len(inputs)):
-            im = bbox_utils.transformsXY_im(inputs[i],new_size)
+            im = bbox_utils.transformsXY_im(inputs[i], new_size)
             tensor = convert_tensor(im)
             new_inputs.append(tensor)
 
-        new_inputs = torch.stack(tuple(new_inputs),0)
+        new_inputs = torch.stack(tuple(new_inputs), 0)
         new_inputs, targets = new_inputs.to(device), targets.to(device)
 
         # Forward pass, compute gradients, perform one training step.
@@ -470,7 +497,7 @@ for epoch in range(num_epochs):
         # Compute accuracy.
         # we use output & target
 
-        subtra = torch.subtract(output,targets)
+        subtra = torch.subtract(output, targets)
         squared = torch.square(subtra)
         acc = torch.sum(squared)
 
@@ -484,7 +511,8 @@ for epoch in range(num_epochs):
         # acc.cpu().detach().numpy())
         train_accuracies_batches.append(float(accuracy_train.cpu().numpy()))
 
-        PATH_TRAIN = Path(dir_root, './data/model/logs/logs_train_{start_time}.csv')
+        PATH_TRAIN = Path(
+            dir_root, './data/model/logs/logs_train_{start_time}.csv')
         with open(PATH_TRAIN, 'a', newline='') as myfile:
             wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
             wr.writerow([accuracy_train.cpu().detach().numpy(),
@@ -498,29 +526,36 @@ for epoch in range(num_epochs):
                         new_inputs = []
 
                         for i in range(len(inputs)):
-                            im = bbox_utils.transformsXY_im(inputs[i],new_size)
+                            im = bbox_utils.transformsXY_im(
+                                inputs[i], new_size)
                             tensor = convert_tensor(im)
                             new_inputs.append(tensor)
 
-                        new_inputs = torch.stack(tuple(new_inputs),0)
-                        new_inputs, targets = new_inputs.to(device), targets.to(device)
+                        new_inputs = torch.stack(tuple(new_inputs), 0)
+                        new_inputs, targets = new_inputs.to(
+                            device), targets.to(device)
 
                         output = model(new_inputs)
                         loss = loss_fn(output, targets)
 
-                        print("targets: ",targets)
-                        print("output: ",output)
+                        print("targets: ", targets)
+                        print("output: ", output)
 
                         correct_match = 0
                         correct_match += (output == targets).float().sum()
                         accuracy_val = 100 * correct_match / len(inputs)
                         print("accuracy_val: ", float(accuracy_val.numpy()))
-                        train_accuracies_batches.append(float(accuracy_val.cpu().detach().numpy()))#acc.cpu().detach().numpy())
+                        # acc.cpu().detach().numpy())
+                        train_accuracies_batches.append(
+                            float(accuracy_val.cpu().detach().numpy()))
 
-                        PATH_TRAIN = Path(dir_root, './data/model/logs/logs_val_{start_time}.csv')
+                        PATH_TRAIN = Path(
+                            dir_root, './data/model/logs/logs_val_{start_time}.csv')
                         with open(PATH_TRAIN, 'a', newline='') as myfile:
                             wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
-                            wr.writerow([accuracy_val.cpu().detach().numpy(), loss.cpu().detach().numpy()])#[int(acc)])
+                            # [int(acc)])
+                            wr.writerow(
+                                [accuracy_val.cpu().detach().numpy(), loss.cpu().detach().numpy()])
                     model.train()
 
 print("Finished training.")
