@@ -170,7 +170,7 @@ class RandomScale(object):
         img = canvas
         bboxes = clip_box(bboxes, [0,0,1 + img_shape[1], img_shape[0]], 0.25)
     
-    
+        print("img", img)
         return img, bboxes
 
 

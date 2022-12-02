@@ -235,31 +235,50 @@ print(annot_data.head())
 
 
 def stack_to_numpy(row):
-    result_arr = []
+    #result_arr = np.empty((1, 4))
+   # result_arr = []
 
-    for i in range(len(row['bbox'])):
-        result_arr.append(row['bbox'][i])
-    out = np.vstack(result_arr)
+    out = np.array(row['bbox']).astype("float64")
 
     return out
+
 
 annot_data['np_bboxes'] = annot_data.apply(lambda row: stack_to_numpy(row), axis=1)
 
 print(annot_data.head())
 
-plotted_img = draw_rect(annot_data['image'][1],annot_data['np_bboxes'][1])
-plt.imshow(plotted_img)
+# plotted_img = draw_rect(annot_data['image'][1],annot_data['np_bboxes'][1])
+# plt.imshow(plotted_img)
+# plt.show()
 
-img_, bboxes_ = RandomHorizontalFlip(1)(annot_data['image'][1].copy(), annot_data['np_bboxes'][1].copy())
-plotted_img = draw_rect(img_, bboxes_)
-plt.imshow(plotted_img)
+# img_, bboxes_ = RandomHorizontalFlip(1)(annot_data['image'][1].copy(), annot_data['np_bboxes'][1].copy())
+# plotted_img = draw_rect(img_, bboxes_)
+# plt.imshow(plotted_img)
+# plt.show()
+# img_, bboxes_ = RandomScale(0.3, diff = False)(annot_data['image'][1].copy(), annot_data['np_bboxes'][1].copy())
+# plotted_img = draw_rect(img_, bboxes_)
+# plt.imshow(plotted_img)
+# plt.show()
 
-img_, bboxes_ = RandomScale(0.3, diff = True)(annot_data['image'][1].copy(), annot_data['np_bboxes'][1].copy())
+# img_, bboxes_ = RandomTranslate(0.3, diff = True)(annot_data['image'][1].copy(), annot_data['np_bboxes'][1].copy())
+# plotted_img = draw_rect(img_, bboxes_)
+# plt.imshow(plotted_img)
+# plt.show()
+
+# img_, bboxes_ = RandomRotate(20)(annot_data['image'][1].copy(), annot_data['np_bboxes'][1].copy())
+# plotted_img = draw_rect(img_, bboxes_)
+# plt.imshow(plotted_img)
+# plt.show()
+
+# img_, bboxes_ = RandomShear(0.2)(annot_data['image'][1].copy(), annot_data['np_bboxes'][1].copy())
+# plotted_img = draw_rect(img_, bboxes_)
+# plt.imshow(plotted_img)
+# plt.show()
+
+img_, bboxes_ = RandomHSV(100, 100, 100)(annot_data['image'][1].copy(), annot_data['np_bboxes'][1].copy())
 plotted_img = draw_rect(img_, bboxes_)
 plt.imshow(plotted_img)
 plt.show()
-
-
 
 
 
