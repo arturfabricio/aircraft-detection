@@ -39,7 +39,7 @@ class RandomHorizontalFlip(object):
             img_center = np.array(img.shape[:2])[::-1]/2
             img_center = np.hstack((img_center, img_center))
             if random.random() < self.p:
-                img = img[:, ::-1, :]
+                img = img[:, ::-1, :] #- np.zeros_like(img)
                 bboxes[:, [0, 2]] += 2*(img_center[[0, 2]] - bboxes[:, [0, 2]])
 
                 box_w = abs(bboxes[:, 0] - bboxes[:, 2])
@@ -159,7 +159,7 @@ class RandomScale(object):
         
         
         
-        canvas = np.zeros(img_shape, dtype = np.uint8)
+        canvas = np.zeros(img_shape)#, dtype = np.uint8)
         
         y_lim = int(min(resize_scale_y,1)*img_shape[0])
         x_lim = int(min(resize_scale_x,1)*img_shape[1])
@@ -170,7 +170,7 @@ class RandomScale(object):
         img = canvas
         bboxes = clip_box(bboxes, [0,0,1 + img_shape[1], img_shape[0]], 0.25)
     
-        print("img", img)
+        #print("img", img)
         return img, bboxes
 
 
@@ -296,7 +296,7 @@ class RandomTranslate(object):
         if not self.diff:
             translate_factor_y = translate_factor_x
             
-        canvas = np.zeros(img_shape).astype(np.uint8)
+        canvas = np.zeros(img_shape) #.astype(np.uint8)
     
     
         corner_x = int(translate_factor_x*img.shape[1])
@@ -517,7 +517,7 @@ class Rotate(object):
         """
         
         angle = self.angle
-        print(self.angle)
+        #print(self.angle)
         
         w,h = img.shape[1], img.shape[0]
         cx, cy = w//2, h//2

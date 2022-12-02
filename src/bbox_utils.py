@@ -59,8 +59,8 @@ def get_referencepoints(im_shape, s):
     width = 128
     height = 128
 
-    print('Width: ', width)
-    print('Heigth: ', height)
+    # print('Width: ', width)
+    # print('Heigth: ', height)
 
     width_incr = int(width//s)
     height_incr = int(height//s)
