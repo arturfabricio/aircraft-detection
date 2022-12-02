@@ -34,7 +34,7 @@ from data_aug import *
 from bbox_aug import *
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
-dir_root = Path(os.getcwd()).parent
+dir_root = Path(__file__).parent.parent
 train_imgs = Path(dir_root, './data/train')
 annot_dir = Path(dir_root, './data/annot/rareplanes.json')
 train_im_list = [z for z in os.listdir(train_imgs) if z.endswith('.png')]
@@ -45,7 +45,7 @@ assert len(train_im_list) == len(data['images'])
 ### Hyperparameters #############
 def loss_fn(output, target):
     loss = torch.mean((output-target)**2)
-    sum_loss = sum(target)
+    sum_loss = torch.sum(target)
     if sum_loss == 0:
         return loss
     else:
@@ -62,7 +62,7 @@ lr = 0.0001
 batchsize = 64
 num_epochs = 1
 validation_every_steps = 1
-load_few_images = False
+load_few_images = True
 train_model = True
 print_logs = True
 save_model = False
