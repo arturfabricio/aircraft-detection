@@ -58,14 +58,16 @@ def loss_fn(output, target):
     #                    y=torch.mean((output - target) ** 2))
 
 s = 10
-lr = 0.0001
+lr = 10e-4
 batchsize = 64
-num_epochs = 1
+num_epochs = 2
 validation_every_steps = 1
-load_few_images = True
+load_few_images = False
 train_model = True
 print_logs = True
-save_model = False
+save_model = True
+augment = True
+wd = 10e-4 
 #################################
 
 ### Functions ###
@@ -92,6 +94,9 @@ def display_bbox_target_vector(data_frame):
     plt.show()
 
 ### Processing ###
+
+print("Started running!")
+
 with open(annot_dir) as json_data:
     data = json.load(json_data)
 
@@ -117,84 +122,85 @@ annot_data['image'] = annot_data.apply(resize_im_rowwise, axis=1)
 annot_data['bbox'] = annot_data.apply(resize_bbox_rowwise, axis=1)
 annot_data['np_bboxes'] = annot_data.apply(lambda row: stack_to_numpy(row), axis=1)
 
-annot_data_rscale = annot_data.copy()
-annot_data_translate = annot_data.copy()
-annot_data_rotate = annot_data.copy()
+if augment == True:
 
-print("Init time: ", datetime.datetime.now())
-print("Initial amount of images: ", len(annot_data['image']))
+    annot_data_rscale = annot_data.copy()
+    annot_data_translate = annot_data.copy()
+    annot_data_rotate = annot_data.copy()
 
-def rotate(row,angle):
-    new_img, new_bboxs = RandomRotate(angle)(row['image'], row['np_bboxes'])
-    return new_img, new_bboxs
+    print("Init time: ", datetime.datetime.now())
+    print("Initial amount of images: ", len(annot_data['image']))
 
-annot_data_rotate["image"], annot_data_rotate["bbox"] = zip(*annot_data_rotate.apply(lambda row: rotate(row,30), axis=1))
-annot_data = annot_data.append(annot_data_rotate, ignore_index=True)
-# annot_data_rotate["image"], annot_data_rotate["bbox"] = zip(*annot_data_rotate.apply(lambda row: rotate(row,60), axis=1))
-# annot_data = annot_data.append(annot_data_rotate, ignore_index=True)
-# annot_data_rotate["image"], annot_data_rotate["bbox"] = zip(*annot_data_rotate.apply(lambda row: rotate(row,90), axis=1))
-# annot_data = annot_data.append(annot_data_rotate, ignore_index=True)
-# annot_data_rotate["image"], annot_data_rotate["bbox"] = zip(*annot_data_rotate.apply(lambda row: rotate(row,120), axis=1))
-# annot_data = annot_data.append(annot_data_rotate, ignore_index=True)
-# annot_data_rotate["image"], annot_data_rotate["bbox"] = zip(*annot_data_rotate.apply(lambda row: rotate(row,150), axis=1))
-# annot_data = annot_data.append(annot_data_rotate, ignore_index=True)
-# annot_data_rotate["image"], annot_data_rotate["bbox"] = zip(*annot_data_rotate.apply(lambda row: rotate(row,180), axis=1))
-# annot_data = annot_data.append(annot_data_rotate, ignore_index=True)
-# annot_data_rotate["image"], annot_data_rotate["bbox"] = zip(*annot_data_rotate.apply(lambda row: rotate(row,210), axis=1))
-# annot_data = annot_data.append(annot_data_rotate, ignore_index=True)
-# annot_data_rotate["image"], annot_data_rotate["bbox"] = zip(*annot_data_rotate.apply(lambda row: rotate(row,240), axis=1))
-# annot_data = annot_data.append(annot_data_rotate, ignore_index=True)
-# annot_data_rotate["image"], annot_data_rotate["bbox"] = zip(*annot_data_rotate.apply(lambda row: rotate(row,270), axis=1))
-# annot_data = annot_data.append(annot_data_rotate, ignore_index=True)
-# annot_data_rotate["image"], annot_data_rotate["bbox"] = zip(*annot_data_rotate.apply(lambda row: rotate(row,310), axis=1))
-# annot_data = annot_data.append(annot_data_rotate, ignore_index=True)
+    def rotate(row,angle):
+        new_img, new_bboxs = RandomRotate(angle)(row['image'], row['np_bboxes'])
+        return new_img, new_bboxs
 
-print("Final rotate time: ", datetime.datetime.now())
+    annot_data_rotate["image"], annot_data_rotate["bbox"] = zip(*annot_data_rotate.apply(lambda row: rotate(row,30), axis=1))
+    annot_data = annot_data.append(annot_data_rotate, ignore_index=True)
+    # annot_data_rotate["image"], annot_data_rotate["bbox"] = zip(*annot_data_rotate.apply(lambda row: rotate(row,60), axis=1))
+    # annot_data = annot_data.append(annot_data_rotate, ignore_index=True)
+    # annot_data_rotate["image"], annot_data_rotate["bbox"] = zip(*annot_data_rotate.apply(lambda row: rotate(row,90), axis=1))
+    # annot_data = annot_data.append(annot_data_rotate, ignore_index=True)
+    # annot_data_rotate["image"], annot_data_rotate["bbox"] = zip(*annot_data_rotate.apply(lambda row: rotate(row,120), axis=1))
+    # annot_data = annot_data.append(annot_data_rotate, ignore_index=True)
+    # annot_data_rotate["image"], annot_data_rotate["bbox"] = zip(*annot_data_rotate.apply(lambda row: rotate(row,150), axis=1))
+    # annot_data = annot_data.append(annot_data_rotate, ignore_index=True)
+    # annot_data_rotate["image"], annot_data_rotate["bbox"] = zip(*annot_data_rotate.apply(lambda row: rotate(row,180), axis=1))
+    # annot_data = annot_data.append(annot_data_rotate, ignore_index=True)
+    # annot_data_rotate["image"], annot_data_rotate["bbox"] = zip(*annot_data_rotate.apply(lambda row: rotate(row,210), axis=1))
+    # annot_data = annot_data.append(annot_data_rotate, ignore_index=True)
+    # annot_data_rotate["image"], annot_data_rotate["bbox"] = zip(*annot_data_rotate.apply(lambda row: rotate(row,240), axis=1))
+    # annot_data = annot_data.append(annot_data_rotate, ignore_index=True)
+    # annot_data_rotate["image"], annot_data_rotate["bbox"] = zip(*annot_data_rotate.apply(lambda row: rotate(row,270), axis=1))
+    # annot_data = annot_data.append(annot_data_rotate, ignore_index=True)
+    # annot_data_rotate["image"], annot_data_rotate["bbox"] = zip(*annot_data_rotate.apply(lambda row: rotate(row,310), axis=1))
+    # annot_data = annot_data.append(annot_data_rotate, ignore_index=True)
 
-def scale(row,ratio):
-    new_img, new_bboxs = RandomScale(ratio, diff = True)(row['image'], row['np_bboxes'])
-    return new_img, new_bboxs
+    print("Final rotate time: ", datetime.datetime.now())
 
-annot_data_rscale["image"], annot_data_rscale["bbox"] = zip(*annot_data_rscale.apply(lambda row: scale(row,0.2), axis=1))
-annot_data = annot_data.append(annot_data_rscale, ignore_index=True)
-# annot_data_rscale["image"], annot_data_rscale["bbox"] = zip(*annot_data_rscale.apply(lambda row: scale(row,0.4), axis=1))
-# annot_data = annot_data.append(annot_data_rscale, ignore_index=True)
-# annot_data_rscale["image"], annot_data_rscale["bbox"] = zip(*annot_data_rscale.apply(lambda row: scale(row,0.6), axis=1))
-# annot_data = annot_data.append(annot_data_rscale, ignore_index=True)
-# annot_data_rscale["image"], annot_data_rscale["bbox"] = zip(*annot_data_rscale.apply(lambda row: scale(row,0.8), axis=1))
-# annot_data = annot_data.append(annot_data_rscale, ignore_index=True)
+    def scale(row,ratio):
+        new_img, new_bboxs = RandomScale(ratio, diff = True)(row['image'], row['np_bboxes'])
+        return new_img, new_bboxs
 
-print("Final scale time: ", datetime.datetime.now())
+    annot_data_rscale["image"], annot_data_rscale["bbox"] = zip(*annot_data_rscale.apply(lambda row: scale(row,0.2), axis=1))
+    annot_data = annot_data.append(annot_data_rscale, ignore_index=True)
+    # annot_data_rscale["image"], annot_data_rscale["bbox"] = zip(*annot_data_rscale.apply(lambda row: scale(row,0.4), axis=1))
+    # annot_data = annot_data.append(annot_data_rscale, ignore_index=True)
+    # annot_data_rscale["image"], annot_data_rscale["bbox"] = zip(*annot_data_rscale.apply(lambda row: scale(row,0.6), axis=1))
+    # annot_data = annot_data.append(annot_data_rscale, ignore_index=True)
+    # annot_data_rscale["image"], annot_data_rscale["bbox"] = zip(*annot_data_rscale.apply(lambda row: scale(row,0.8), axis=1))
+    # annot_data = annot_data.append(annot_data_rscale, ignore_index=True)
+
+    print("Final scale time: ", datetime.datetime.now())
 
 
-def translate(row,ratio):
-    new_img, new_bboxs = RandomTranslate(ratio, diff = True)(row['image'], row['np_bboxes'])
-    return new_img, new_bboxs
+    def translate(row,ratio):
+        new_img, new_bboxs = RandomTranslate(ratio, diff = True)(row['image'], row['np_bboxes'])
+        return new_img, new_bboxs
 
-annot_data_rscale["image"], annot_data_rscale["bbox"] = zip(*annot_data_rscale.apply(lambda row: translate(row,0.2), axis=1))
-annot_data = annot_data.append(annot_data_rscale, ignore_index=True)
-# annot_data_rscale["image"], annot_data_rscale["bbox"] = zip(*annot_data_rscale.apply(lambda row: translate(row,0.4), axis=1))
-# annot_data = annot_data.append(annot_data_rscale, ignore_index=True)
-# annot_data_rscale["image"], annot_data_rscale["bbox"] = zip(*annot_data_rscale.apply(lambda row: translate(row,0.6), axis=1))
-# annot_data = annot_data.append(annot_data_rscale, ignore_index=True)
-# annot_data_rscale["image"], annot_data_rscale["bbox"] = zip(*annot_data_rscale.apply(lambda row: translate(row,0.8), axis=1))
-# annot_data = annot_data.append(annot_data_rscale, ignore_index=True)
+    annot_data_rscale["image"], annot_data_rscale["bbox"] = zip(*annot_data_rscale.apply(lambda row: translate(row,0.2), axis=1))
+    annot_data = annot_data.append(annot_data_rscale, ignore_index=True)
+    # annot_data_rscale["image"], annot_data_rscale["bbox"] = zip(*annot_data_rscale.apply(lambda row: translate(row,0.4), axis=1))
+    # annot_data = annot_data.append(annot_data_rscale, ignore_index=True)
+    # annot_data_rscale["image"], annot_data_rscale["bbox"] = zip(*annot_data_rscale.apply(lambda row: translate(row,0.6), axis=1))
+    # annot_data = annot_data.append(annot_data_rscale, ignore_index=True)
+    # annot_data_rscale["image"], annot_data_rscale["bbox"] = zip(*annot_data_rscale.apply(lambda row: translate(row,0.8), axis=1))
+    # annot_data = annot_data.append(annot_data_rscale, ignore_index=True)
 
-print("Final translate time: ", datetime.datetime.now())
+    print("Final translate time: ", datetime.datetime.now())
 
-annot_data.drop(['np_bboxes','path'], axis=1, inplace=True)
-# plotted_img = draw_rect(annot_data['image'][len(annot_data['bbox'])-1].copy(), annot_data['bbox'][len(annot_data['bbox'])-1].copy())
-# plt.imshow(plotted_img)
-# plt.show()
+    annot_data.drop(['np_bboxes','path'], axis=1, inplace=True)
+    # plotted_img = draw_rect(annot_data['image'][len(annot_data['bbox'])-1].copy(), annot_data['bbox'][len(annot_data['bbox'])-1].copy())
+    # plt.imshow(plotted_img)
+    # plt.show()
 
-print("Augmented amount of images: ", len(annot_data['image']))
-print("Final time: ", datetime.datetime.now())
+    print("Augmented amount of images: ", len(annot_data['image']))
+    print("Final time: ", datetime.datetime.now())
 
 bboxs = bbox_utils.generate(s, 130//4, 10, (128, 128))
 
 np_bboxs = np.asarray(list(
     map(lambda BBOX: [BBOX.arr[0], BBOX.arr[1], BBOX.arr[2], BBOX.arr[3]], bboxs)))
-
 
 def calculate_iou_rowwise(row):
     target_vector = np.zeros(len(np_bboxs))
@@ -331,7 +337,7 @@ if train_model == True:
     #out = model(torch.randn(batchsize, 3, 128, 128, device=device))
     # print("Output shape:", out.size())
     # print(f"Output logits:\n{out.detach().cpu().numpy()}")
-    optimizer = optim.Adam(model.parameters(), lr)
+    optimizer = optim.Adam(model.parameters(), lr,weight_decay=wd)
 
     convert_tensor = transforms.ToTensor()
     step = 0
@@ -344,10 +350,10 @@ if train_model == True:
     
     if print_logs == True:
         titles = ['learning rate', 'batchsize', 'epochs',
-                'train_images', 'val_images', 's', 'loss_fn', 'optimizer']
+                'train_images', 'val_images', 's', 'weigth decay','optimizer']
         hyper = [lr, batchsize, num_epochs, len(
-            train_ds), len(valid_ds), s, loss_fn, optimizer]
-        PATH_HYPER = Path(dir_root, './data/model/logs/hyper_{start_time}.csv')
+            train_ds), len(valid_ds), s, wd, optimizer]
+        PATH_HYPER = Path(dir_root, f'./data/model/logs/hyper_{start_time}.csv')
         with open(PATH_HYPER, 'a', newline='') as myfile:
             wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
             wr.writerow(titles)
@@ -375,7 +381,7 @@ if train_model == True:
 
             if print_logs == True:
                 PATH_TRAIN = Path(
-                    dir_root, './data/model/logs/logs_train_{start_time}.csv')
+                    dir_root, f'./data/model/logs/logs_train_{start_time}.csv')
                 
                 with open(PATH_TRAIN, 'a', newline='') as myfile:
                     wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
@@ -399,7 +405,7 @@ if train_model == True:
                         
                         if print_logs == True:
                             PATH_TRAIN = Path(
-                                dir_root, './data/model/logs/logs_val_{start_time}.csv')
+                                dir_root, f'./data/model/logs/logs_val_{start_time}.csv')
                             with open(PATH_TRAIN, 'a', newline='') as myfile:
                                 wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
                                 wr.writerow([loss.cpu().detach().numpy()])
@@ -408,5 +414,5 @@ if train_model == True:
     print("Finished training.")
 
     if save_model == True:
-        PATH = os.path.join(dir_root, f'../AIRCRAFT/data/model/{start_time}.pth')
+        PATH = os.path.join(dir_root, f'./data/model/{start_time}.pth')
         torch.save(model, PATH)
