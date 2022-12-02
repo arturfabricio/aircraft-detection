@@ -45,22 +45,26 @@ assert len(train_im_list) == len(data['images'])
 ### Hyperparameters #############
 def loss_fn(output, target):
     loss = torch.mean((output-target)**2)
-    loss = torch.divide(loss,len(target))
-    return loss
+    sum_loss = sum(target)
+    if sum_loss == 0:
+        return loss
+    else:
+        return torch.divide(loss,sum_loss)
     # num_planes = torch.sum(target)
     # print(num_planes)
     # return torch.where(num_planes > 0,
     #                    x=torch.mean((output - target) ** 2) /
     #                    torch.sum(target),
     #                    y=torch.mean((output - target) ** 2))
+
 s = 10
 lr = 0.0001
 batchsize = 64
 num_epochs = 1
 validation_every_steps = 1
-condition_few = False
-train_model = False
-print_logs = False
+load_few_images = False
+train_model = True
+print_logs = True
 save_model = False
 #################################
 
@@ -99,7 +103,7 @@ annot_data.rename(columns={"image_fname": "name"}, inplace=True)
 annot_data = annot_data.groupby(['image_id']).agg(
     tuple).applymap(np.array).reset_index()
 
-if condition_few == True:
+if load_few_images == True:
     annot_data.drop(annot_data.index.to_list()[3:], axis=0, inplace=True)
 
 annot_data['path'] = annot_data.apply(
