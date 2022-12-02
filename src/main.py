@@ -30,6 +30,8 @@ import cv2
 import matplotlib.patches as patches
 import colorsys
 import math
+from data_aug import *
+from bbox_aug import *
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
 dir_root = Path(os.getcwd()).parent
@@ -224,10 +226,42 @@ def rotate270bbox(row):
     return rotatebbox(row['bbox'], 270)
 
 
-print(len(annot_data))
-print("Init time: ", datetime.datetime.now())
+# print(len(annot_data))
+# print("Init time: ", datetime.datetime.now())
 annot_data['image'] = annot_data.apply(resize_im_rowwise, axis=1)
 annot_data['bbox'] = annot_data.apply(resize_bbox_rowwise, axis=1)
+
+print(annot_data.head())
+
+
+def stack_to_numpy(row):
+    result_arr = []
+
+    for i in range(len(row['bbox'])):
+        result_arr.append(row['bbox'][i])
+    out = np.vstack(result_arr)
+
+    return out
+
+annot_data['np_bboxes'] = annot_data.apply(lambda row: stack_to_numpy(row), axis=1)
+
+print(annot_data.head())
+
+plotted_img = draw_rect(annot_data['image'][1],annot_data['np_bboxes'][1])
+plt.imshow(plotted_img)
+
+img_, bboxes_ = RandomHorizontalFlip(1)(annot_data['image'][1].copy(), annot_data['np_bboxes'][1].copy())
+plotted_img = draw_rect(img_, bboxes_)
+plt.imshow(plotted_img)
+
+img_, bboxes_ = RandomScale(0.3, diff = True)(annot_data['image'][1].copy(), annot_data['np_bboxes'][1].copy())
+plotted_img = draw_rect(img_, bboxes_)
+plt.imshow(plotted_img)
+plt.show()
+
+
+
+
 
 # annot_data_90 = annot_data.copy()
 # annot_data_180 = annot_data.copy()
@@ -245,8 +279,8 @@ annot_data['bbox'] = annot_data.apply(resize_bbox_rowwise, axis=1)
 # annot_data = annot_data.append(annot_data_90, ignore_index=True)
 # annot_data = annot_data.append(annot_data_180, ignore_index=True)
 # annot_data = annot_data.append(annot_data_270, ignore_index=True)
-print("End time: ", datetime.datetime.now())
-print(len(annot_data))
+# print("End time: ", datetime.datetime.now())
+# print(len(annot_data))
 
 # i = 0
 
@@ -282,273 +316,273 @@ print(len(annot_data))
 # plt.show()
 
 
-bboxs = bbox_utils.generate(s, 130//4, 10, (128, 128))
+# bboxs = bbox_utils.generate(s, 130//4, 10, (128, 128))
 
-np_bboxs = np.asarray(list(
-    map(lambda BBOX: [BBOX.arr[0], BBOX.arr[1], BBOX.arr[2], BBOX.arr[3]], bboxs)))
-
-
-def calculate_iou_rowwise(row):
-    target_vector = np.zeros(len(np_bboxs))
-    for bbox in row['bbox']:
-        xA = np.maximum(np_bboxs[:, 0], bbox[0])
-        yA = np.maximum(np_bboxs[:, 1], bbox[1])
-        xB = np.minimum(np_bboxs[:, 2], bbox[2])
-        yB = np.minimum(np_bboxs[:, 3], bbox[3])
-        interArea = np.maximum(0, xB - xA + 1) * np.maximum(0, yB - yA + 1)
-        boxAArea = (np_bboxs[:, 2] - np_bboxs[:, 0] + 1) * \
-            (np_bboxs[:, 3] - np_bboxs[:, 1] + 1)
-        boxBArea = (bbox[2] - bbox[0] + 1) * \
-            (bbox[3] - bbox[1] + 1)
-        iou = np.divide(interArea, (np.subtract(
-            np.add(boxAArea, boxBArea), interArea)))
-        b = np.zeros_like(iou)
-        b[np.argmax(iou, axis=0)] = 1
-        target_vector = target_vector + b
-    print(sum(target_vector))
-    return target_vector
+# np_bboxs = np.asarray(list(
+#     map(lambda BBOX: [BBOX.arr[0], BBOX.arr[1], BBOX.arr[2], BBOX.arr[3]], bboxs)))
 
 
-annot_data['target_vector'] = annot_data.apply(calculate_iou_rowwise, axis=1)
+# def calculate_iou_rowwise(row):
+#     target_vector = np.zeros(len(np_bboxs))
+#     for bbox in row['bbox']:
+#         xA = np.maximum(np_bboxs[:, 0], bbox[0])
+#         yA = np.maximum(np_bboxs[:, 1], bbox[1])
+#         xB = np.minimum(np_bboxs[:, 2], bbox[2])
+#         yB = np.minimum(np_bboxs[:, 3], bbox[3])
+#         interArea = np.maximum(0, xB - xA + 1) * np.maximum(0, yB - yA + 1)
+#         boxAArea = (np_bboxs[:, 2] - np_bboxs[:, 0] + 1) * \
+#             (np_bboxs[:, 3] - np_bboxs[:, 1] + 1)
+#         boxBArea = (bbox[2] - bbox[0] + 1) * \
+#             (bbox[3] - bbox[1] + 1)
+#         iou = np.divide(interArea, (np.subtract(
+#             np.add(boxAArea, boxBArea), interArea)))
+#         b = np.zeros_like(iou)
+#         b[np.argmax(iou, axis=0)] = 1
+#         target_vector = target_vector + b
+#     print(sum(target_vector))
+#     return target_vector
 
 
-def display_bbox_target_vector(data_frame):
-    fig, ax = plt.subplots()
-    to_draw = np_bboxs[np.array(data_frame['target_vector'][1], dtype=bool)]
-
-    ax.imshow(data_frame['image'][1])
-    for bbox in to_draw:
-        rect = patches.Rectangle((bbox[0], bbox[1]), bbox[2]-bbox[0],
-                                 bbox[3]-bbox[1], linewidth=1, edgecolor=bbox_utils.get_random_color(), facecolor='none')
-        ax.add_patch(rect)
-    plt.show()
+# annot_data['target_vector'] = annot_data.apply(calculate_iou_rowwise, axis=1)
 
 
-display_bbox_target_vector(annot_data)
+# def display_bbox_target_vector(data_frame):
+#     fig, ax = plt.subplots()
+#     to_draw = np_bboxs[np.array(data_frame['target_vector'][1], dtype=bool)]
 
-annot_data = annot_data.reset_index()
-X = annot_data['image']
-Y = annot_data['target_vector']
-X_train, X_val, y_train, y_val = train_test_split(
-    X, Y, test_size=0.15, random_state=42)
-
-
-class AircraftDataset(Dataset):
-    def __init__(self, images, y, transforms=False):
-        self.images = images.values
-        self.y = y.values
-
-    def __len__(self):
-        return len(self.images)
-
-    def __getitem__(self, idx):
-        path = self.images[idx]
-        y = self.y[idx]
-        return path, y
+#     ax.imshow(data_frame['image'][1])
+#     for bbox in to_draw:
+#         rect = patches.Rectangle((bbox[0], bbox[1]), bbox[2]-bbox[0],
+#                                  bbox[3]-bbox[1], linewidth=1, edgecolor=bbox_utils.get_random_color(), facecolor='none')
+#         ax.add_patch(rect)
+#     plt.show()
 
 
-train_ds = AircraftDataset(X_train, y_train, transforms=True)
-valid_ds = AircraftDataset(X_val, y_val)
+# display_bbox_target_vector(annot_data)
 
-batch_size = 64
-train_dl = DataLoader(train_ds, batch_size=batch_size,
-                      shuffle=True, num_workers=0, drop_last=False)
-valid_dl = DataLoader(valid_ds, batch_size=batch_size,
-                      shuffle=False, num_workers=0, drop_last=False)
-
-
-class AircraftModel(nn.Module):
-    def __init__(self):
-        super(AircraftModel, self).__init__()
-        self.conv = nn.Sequential(
-            Conv2d(3, 192, kernel_size=7, stride=2),
-            nn.LeakyReLU(0.1),
-            MaxPool2d(2, 2),
-            Conv2d(192, 256, 3, 1),
-            nn.LeakyReLU(0.1),
-            MaxPool2d(2, 2),
-            # Conv2d(256,128,1,1),
-            # nn.LeakyReLU(0.1),
-            # Conv2d(128,256,1,1),
-            # nn.LeakyReLU(0.1),
-            # Conv2d(256,256,1,1),
-            # nn.LeakyReLU(0.1),
-            # Conv2d(256,512,1,1),
-            # nn.LeakyReLU(0.1),
-            # MaxPool2d(2,2),
-            # Conv2d(512,256,1,1),
-            # nn.LeakyReLU(0.1),
-            # Conv2d(256,512,1,1),
-            # nn.LeakyReLU(0.1),
-            # Conv2d(512,256,1,1),
-            # nn.LeakyReLU(0.1),
-            # Conv2d(256,512,1,1),
-            # nn.LeakyReLU(0.1),
-            # Conv2d(512,256,1,1),
-            # nn.LeakyReLU(0.1),
-            # Conv2d(256,512,1,1),
-            # nn.LeakyReLU(0.1),
-            # Conv2d(512,256,1,1),
-            # nn.LeakyReLU(0.1),
-            # Conv2d(256,512,1,1),
-            # nn.LeakyReLU(0.1),
-            # Conv2d(512,1024,1,1),
-            # nn.LeakyReLU(0.1),
-            # Conv2d(1024,512,1,1),
-            # nn.LeakyReLU(0.1),
-            # # MaxPool2d(2,2),
-            # Conv2d(512,1024,1,1),
-            # nn.LeakyReLU(0.1),
-            # Conv2d(1024,512,1,1),
-            # nn.LeakyReLU(0.1),
-            # Conv2d(512,1024,1,1),
-            # nn.LeakyReLU(0.1),
-            # Conv2d(1024,512,1,1),
-            # nn.LeakyReLU(0.1),
-            # Conv2d(512,1024,1,1),
-            # nn.LeakyReLU(0.1),
-            # Conv2d(1024,1024,1,2),
-            # nn.LeakyReLU(0.1),
-            # Conv2d(1024,1024,1,1),
-            # nn.LeakyReLU(0.1),
-            Conv2d(256, 512, 1, 1),
-            nn.LeakyReLU(0.1),
-            nn.Flatten(start_dim=1),
-            nn.Dropout(0.5)
-        )
-
-        self.connected = nn.Sequential(
-            # (128*128,out_features=1024, bias=False),
-            nn.LazyLinear(out_features=256),
-            nn.ReLU(),
-            nn.Linear(256, out_features=len(bboxs), bias=False)
-        )
-
-    def forward(self, x):
-        x = self.conv(x)
-        x = self.connected(x)
-        return x
+# annot_data = annot_data.reset_index()
+# X = annot_data['image']
+# Y = annot_data['target_vector']
+# X_train, X_val, y_train, y_val = train_test_split(
+#     X, Y, test_size=0.15, random_state=42)
 
 
-model = AircraftModel()
-device = torch.device('cuda')  # use cuda or cpu
-print("Used device: ", device)
-model.to(device)
-print(model)
+# class AircraftDataset(Dataset):
+#     def __init__(self, images, y, transforms=False):
+#         self.images = images.values
+#         self.y = y.values
 
-out = model(torch.randn(batchsize, 3, 128, 128, device=device))
-# print("Output shape:", out.size())
-# print(f"Output logits:\n{out.detach().cpu().numpy()}")
-optimizer = optim.Adam(model.parameters(), lr)
+#     def __len__(self):
+#         return len(self.images)
 
-convert_tensor = transforms.ToTensor()
-step = 0
-model.train()
+#     def __getitem__(self, idx):
+#         path = self.images[idx]
+#         y = self.y[idx]
+#         return path, y
 
-train_accuracies = []
-valid_accuracies = []
 
-start_time = str(time.time())
+# train_ds = AircraftDataset(X_train, y_train, transforms=True)
+# valid_ds = AircraftDataset(X_val, y_val)
 
-titles = ['learning rate', 'batchsize', 'epochs',
-          'train_images', 'val_images', 's', 'loss_fn', 'optimizer']
-hyper = [lr, batchsize, num_epochs, len(
-    train_ds), len(valid_ds), s, loss_fn, optimizer]
-PATH_HYPER = Path(dir_root, './data/model/logs/hyper_{start_time}.csv')
-with open(PATH_HYPER, 'a', newline='') as myfile:
-    wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
-    wr.writerow(titles)
-    wr.writerow(hyper)
+# batch_size = 64
+# train_dl = DataLoader(train_ds, batch_size=batch_size,
+#                       shuffle=True, num_workers=0, drop_last=False)
+# valid_dl = DataLoader(valid_ds, batch_size=batch_size,
+#                       shuffle=False, num_workers=0, drop_last=False)
 
-for epoch in range(num_epochs):
-    print("Epoch number: ", epoch)
 
-    train_accuracies_batches = []
-    for inputs, targets in train_dl:
-        new_inputs = []
-        for i in range(len(inputs)):
-            im = bbox_utils.transformsXY_im(inputs[i], new_size)
-            tensor = convert_tensor(im)
-            new_inputs.append(tensor)
+# class AircraftModel(nn.Module):
+#     def __init__(self):
+#         super(AircraftModel, self).__init__()
+#         self.conv = nn.Sequential(
+#             Conv2d(3, 192, kernel_size=7, stride=2),
+#             nn.LeakyReLU(0.1),
+#             MaxPool2d(2, 2),
+#             Conv2d(192, 256, 3, 1),
+#             nn.LeakyReLU(0.1),
+#             MaxPool2d(2, 2),
+#             # Conv2d(256,128,1,1),
+#             # nn.LeakyReLU(0.1),
+#             # Conv2d(128,256,1,1),
+#             # nn.LeakyReLU(0.1),
+#             # Conv2d(256,256,1,1),
+#             # nn.LeakyReLU(0.1),
+#             # Conv2d(256,512,1,1),
+#             # nn.LeakyReLU(0.1),
+#             # MaxPool2d(2,2),
+#             # Conv2d(512,256,1,1),
+#             # nn.LeakyReLU(0.1),
+#             # Conv2d(256,512,1,1),
+#             # nn.LeakyReLU(0.1),
+#             # Conv2d(512,256,1,1),
+#             # nn.LeakyReLU(0.1),
+#             # Conv2d(256,512,1,1),
+#             # nn.LeakyReLU(0.1),
+#             # Conv2d(512,256,1,1),
+#             # nn.LeakyReLU(0.1),
+#             # Conv2d(256,512,1,1),
+#             # nn.LeakyReLU(0.1),
+#             # Conv2d(512,256,1,1),
+#             # nn.LeakyReLU(0.1),
+#             # Conv2d(256,512,1,1),
+#             # nn.LeakyReLU(0.1),
+#             # Conv2d(512,1024,1,1),
+#             # nn.LeakyReLU(0.1),
+#             # Conv2d(1024,512,1,1),
+#             # nn.LeakyReLU(0.1),
+#             # # MaxPool2d(2,2),
+#             # Conv2d(512,1024,1,1),
+#             # nn.LeakyReLU(0.1),
+#             # Conv2d(1024,512,1,1),
+#             # nn.LeakyReLU(0.1),
+#             # Conv2d(512,1024,1,1),
+#             # nn.LeakyReLU(0.1),
+#             # Conv2d(1024,512,1,1),
+#             # nn.LeakyReLU(0.1),
+#             # Conv2d(512,1024,1,1),
+#             # nn.LeakyReLU(0.1),
+#             # Conv2d(1024,1024,1,2),
+#             # nn.LeakyReLU(0.1),
+#             # Conv2d(1024,1024,1,1),
+#             # nn.LeakyReLU(0.1),
+#             Conv2d(256, 512, 1, 1),
+#             nn.LeakyReLU(0.1),
+#             nn.Flatten(start_dim=1),
+#             nn.Dropout(0.5)
+#         )
 
-        new_inputs = torch.stack(tuple(new_inputs), 0)
-        new_inputs, targets = new_inputs.to(device), targets.to(device)
+#         self.connected = nn.Sequential(
+#             # (128*128,out_features=1024, bias=False),
+#             nn.LazyLinear(out_features=256),
+#             nn.ReLU(),
+#             nn.Linear(256, out_features=len(bboxs), bias=False)
+#         )
 
-        # Forward pass, compute gradients, perform one training step.
-        optimizer.zero_grad()
-        output = model(new_inputs)
-        loss = loss_fn(output, targets)
-        loss.backward()
-        optimizer.step()
+#     def forward(self, x):
+#         x = self.conv(x)
+#         x = self.connected(x)
+#         return x
 
-        # Increment step counter
-        step += 1
 
-        # Compute accuracy.
-        # we use output & target
+# model = AircraftModel()
+# device = torch.device('cuda')  # use cuda or cpu
+# print("Used device: ", device)
+# model.to(device)
+# print(model)
 
-        subtra = torch.subtract(output, targets)
-        squared = torch.square(subtra)
-        acc = torch.sum(squared)
+# out = model(torch.randn(batchsize, 3, 128, 128, device=device))
+# # print("Output shape:", out.size())
+# # print(f"Output logits:\n{out.detach().cpu().numpy()}")
+# optimizer = optim.Adam(model.parameters(), lr)
 
-        print("targets: ", targets)
-        print("output: ", output)
+# convert_tensor = transforms.ToTensor()
+# step = 0
+# model.train()
 
-        correct_match = 0
-        correct_match += (output == targets).float().sum()
-        accuracy_train = 100 * correct_match / len(inputs)
-        print("accuracy_val: ", float(accuracy_train.numpy()))
-        # acc.cpu().detach().numpy())
-        train_accuracies_batches.append(float(accuracy_train.cpu().numpy()))
+# train_accuracies = []
+# valid_accuracies = []
 
-        PATH_TRAIN = Path(
-            dir_root, './data/model/logs/logs_train_{start_time}.csv')
-        with open(PATH_TRAIN, 'a', newline='') as myfile:
-            wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
-            wr.writerow([accuracy_train.cpu().detach().numpy(),
-                        loss.cpu().detach().numpy()])  # [int(acc)])
+# start_time = str(time.time())
 
-            if step % validation_every_steps == 0:
+# titles = ['learning rate', 'batchsize', 'epochs',
+#           'train_images', 'val_images', 's', 'loss_fn', 'optimizer']
+# hyper = [lr, batchsize, num_epochs, len(
+#     train_ds), len(valid_ds), s, loss_fn, optimizer]
+# PATH_HYPER = Path(dir_root, './data/model/logs/hyper_{start_time}.csv')
+# with open(PATH_HYPER, 'a', newline='') as myfile:
+#     wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
+#     wr.writerow(titles)
+#     wr.writerow(hyper)
 
-                with torch.no_grad():
-                    model.eval()
-                    for inputs, targets in valid_dl:
-                        new_inputs = []
+# for epoch in range(num_epochs):
+#     print("Epoch number: ", epoch)
 
-                        for i in range(len(inputs)):
-                            im = bbox_utils.transformsXY_im(
-                                inputs[i], new_size)
-                            tensor = convert_tensor(im)
-                            new_inputs.append(tensor)
+#     train_accuracies_batches = []
+#     for inputs, targets in train_dl:
+#         new_inputs = []
+#         for i in range(len(inputs)):
+#             im = bbox_utils.transformsXY_im(inputs[i], new_size)
+#             tensor = convert_tensor(im)
+#             new_inputs.append(tensor)
 
-                        new_inputs = torch.stack(tuple(new_inputs), 0)
-                        new_inputs, targets = new_inputs.to(
-                            device), targets.to(device)
+#         new_inputs = torch.stack(tuple(new_inputs), 0)
+#         new_inputs, targets = new_inputs.to(device), targets.to(device)
 
-                        output = model(new_inputs)
-                        loss = loss_fn(output, targets)
+#         # Forward pass, compute gradients, perform one training step.
+#         optimizer.zero_grad()
+#         output = model(new_inputs)
+#         loss = loss_fn(output, targets)
+#         loss.backward()
+#         optimizer.step()
 
-                        print("targets: ", targets)
-                        print("output: ", output)
+#         # Increment step counter
+#         step += 1
 
-                        correct_match = 0
-                        correct_match += (output == targets).float().sum()
-                        accuracy_val = 100 * correct_match / len(inputs)
-                        print("accuracy_val: ", float(accuracy_val.numpy()))
-                        # acc.cpu().detach().numpy())
-                        train_accuracies_batches.append(
-                            float(accuracy_val.cpu().detach().numpy()))
+#         # Compute accuracy.
+#         # we use output & target
 
-                        PATH_TRAIN = Path(
-                            dir_root, './data/model/logs/logs_val_{start_time}.csv')
-                        with open(PATH_TRAIN, 'a', newline='') as myfile:
-                            wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
-                            # [int(acc)])
-                            wr.writerow(
-                                [accuracy_val.cpu().detach().numpy(), loss.cpu().detach().numpy()])
-                    model.train()
+#         subtra = torch.subtract(output, targets)
+#         squared = torch.square(subtra)
+#         acc = torch.sum(squared)
 
-print("Finished training.")
+#         print("targets: ", targets)
+#         print("output: ", output)
 
-# #PATH = os.path.join(dir_root, f'../AIRCRAFT/data/model/{start_time}.pth')
-# #torch.save(model, PATH)
+#         correct_match = 0
+#         correct_match += (output == targets).float().sum()
+#         accuracy_train = 100 * correct_match / len(inputs)
+#         print("accuracy_val: ", float(accuracy_train.numpy()))
+#         # acc.cpu().detach().numpy())
+#         train_accuracies_batches.append(float(accuracy_train.cpu().numpy()))
+
+#         PATH_TRAIN = Path(
+#             dir_root, './data/model/logs/logs_train_{start_time}.csv')
+#         with open(PATH_TRAIN, 'a', newline='') as myfile:
+#             wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
+#             wr.writerow([accuracy_train.cpu().detach().numpy(),
+#                         loss.cpu().detach().numpy()])  # [int(acc)])
+
+#             if step % validation_every_steps == 0:
+
+#                 with torch.no_grad():
+#                     model.eval()
+#                     for inputs, targets in valid_dl:
+#                         new_inputs = []
+
+#                         for i in range(len(inputs)):
+#                             im = bbox_utils.transformsXY_im(
+#                                 inputs[i], new_size)
+#                             tensor = convert_tensor(im)
+#                             new_inputs.append(tensor)
+
+#                         new_inputs = torch.stack(tuple(new_inputs), 0)
+#                         new_inputs, targets = new_inputs.to(
+#                             device), targets.to(device)
+
+#                         output = model(new_inputs)
+#                         loss = loss_fn(output, targets)
+
+#                         print("targets: ", targets)
+#                         print("output: ", output)
+
+#                         correct_match = 0
+#                         correct_match += (output == targets).float().sum()
+#                         accuracy_val = 100 * correct_match / len(inputs)
+#                         print("accuracy_val: ", float(accuracy_val.numpy()))
+#                         # acc.cpu().detach().numpy())
+#                         train_accuracies_batches.append(
+#                             float(accuracy_val.cpu().detach().numpy()))
+
+#                         PATH_TRAIN = Path(
+#                             dir_root, './data/model/logs/logs_val_{start_time}.csv')
+#                         with open(PATH_TRAIN, 'a', newline='') as myfile:
+#                             wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
+#                             # [int(acc)])
+#                             wr.writerow(
+#                                 [accuracy_val.cpu().detach().numpy(), loss.cpu().detach().numpy()])
+#                     model.train()
+
+# print("Finished training.")
+
+# # #PATH = os.path.join(dir_root, f'../AIRCRAFT/data/model/{start_time}.pth')
+# # #torch.save(model, PATH)
