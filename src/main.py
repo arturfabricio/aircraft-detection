@@ -62,7 +62,7 @@ lr = 10e-4
 batchsize = 64
 num_epochs = 2
 validation_every_steps = 1
-load_few_images = False
+load_few_images = True
 train_model = True
 print_logs = True
 save_model = True
@@ -81,17 +81,6 @@ def resize_im_rowwise(row):
 
 def resize_bbox_rowwise(row):
     return bbox_utils.transformsBbox(row['bbox'], ratio)
-
-def display_bbox_target_vector(data_frame):
-    fig, ax = plt.subplots()
-    to_draw = np_bboxs[np.array(data_frame['target_vector'][1], dtype=bool)]
-
-    ax.imshow(data_frame['image'][1])
-    for bbox in to_draw:
-        rect = patches.Rectangle((bbox[0], bbox[1]), bbox[2]-bbox[0],
-                                bbox[3]-bbox[1], linewidth=1, edgecolor=bbox_utils.get_random_color(), facecolor='none')
-        ax.add_patch(rect)
-    plt.show()
 
 ### Processing ###
 
@@ -415,4 +404,4 @@ if train_model == True:
 
     if save_model == True:
         PATH = os.path.join(dir_root, f'./data/model/{start_time}.pth')
-        torch.save(model, PATH)
+        torch.save(model.state_dict(), PATH)
