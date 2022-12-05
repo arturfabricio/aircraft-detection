@@ -3,7 +3,7 @@
 #BSUB -gpu "num=1" 
 #BSUB -J airJob
 #BSUB -n 1
-#BSUB -W 10:00
+#BSUB -W 24:00
 #BSUB -R "rusage[mem=64GB]"
 #BSUB -o logs/%J.out
 #BSUB -e logs/%J.err

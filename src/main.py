@@ -50,24 +50,28 @@ assert len(train_im_list) == len(data['images'])
 
 def loss_fn(output, target):
     loss = torch.mean((output-target)**2)
-    sum_loss = torch.sum(target)
-    if sum_loss == 0:
+    plane_count = torch.sum(target)
+    print("output: ", output)
+    print("target: ", target)
+    print("loss: ", loss)
+    print("plane_count: ", plane_count)
+    if plane_count == 0:
         return loss
     else:
-        return torch.divide(loss, sum_loss)
+        return torch.divide(loss, plane_count)
 
 
-s = 4
-lr = 10e-4
+s = 1
+lr = 10e-8
 batchsize = 64
-num_epochs = 75
+num_epochs = 500
 # Nr of images to load, set to False to load all
-image_load_count: Union[int, bool] = 5
+image_load_count: Union[int, bool] = 1
 train_model = True
 print_logs = True
 save_model = True
 augment = True
-wd = 10e-4
+wd = 0       
 #################################
 
 ### Functions ###
@@ -400,33 +404,25 @@ for epoch in range(num_epochs):
     train_losses = []
     val_losses = []
 
-    i = 0
 
     for inputs, targets in train_dl:
         inputs, targets = inputs.to(device), targets.to(device)
-
-        print_to_logs("Stepping in train: " + str(i))
-        i += 1
 
         inputs = torch.permute(inputs, (0, 3, 1, 2))
         optimizer.zero_grad()
         output = model(inputs)
         loss = loss_fn(output, targets)  # There's an error here
+        exit(0)
         loss.backward()
         optimizer.step()
 
         train_losses.append(loss.detach().cpu().numpy())
-
-    i = 0
 
     with torch.no_grad():
         model.eval()
         for inputs, targets in valid_dl:
             inputs, targets = inputs.to(device), targets.to(device)
             inputs = torch.permute(inputs, (0, 3, 1, 2))
-
-            print_to_logs("Stepping in test: " + str(i))
-            i += 1
 
             optimizer.zero_grad()
             output = model(inputs)
