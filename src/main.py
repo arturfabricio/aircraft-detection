@@ -188,8 +188,6 @@ if augment == True:
 
     print("Final translate time: ", datetime.datetime.now())
 
-    print(len(annot_data))
-
     annot_data.drop(['np_bboxes', 'path'], axis=1, inplace=True)
     # plotted_img = draw_rect(annot_data['image'][len(annot_data['bbox'])-1].copy(), annot_data['bbox'][len(annot_data['bbox'])-1].copy())
     # plt.imshow(plotted_img)
@@ -343,22 +341,24 @@ class AircraftModel(nn.Module):
         x = self.connected(x)
         return x
 
-model_directory  = Path(dir_root,  f'./data/model/{start_time}/')
-model_directory.mkdir(parents = True, exist_ok=True)
+
+model_directory = Path(dir_root,  f'./data/model/{start_time}/')
+model_directory.mkdir(parents=True, exist_ok=True)
 
 LOG_PATH = Path(
     model_directory, f'./logs.log')
+
 
 def print_to_logs(to_print: str):
     with open(LOG_PATH, 'a') as file:
         file.write(to_print + '\n')
 
+
 model = AircraftModel().double()
 device = torch.device('cuda' if torch.cuda.is_available()
-                    else 'cpu')  # use cuda or cpu
+                      else 'cpu')  # use cuda or cpu
 print("Used device: ", device)
 model.to(device)
-print(model)
 
 # out = model(torch.randn(batchsize, 3, 128, 128, device=device))
 # print("Output shape:", out.size())
@@ -375,7 +375,7 @@ valid_accuracies = []
 start_time = datetime.datetime.now()
 if print_logs == True:
     titles = ['learning rate', 'batchsize', 'epochs',
-            'train_images', 'val_images', 's', 'weigth decay', 'optimizer']
+              'train_images', 'val_images', 's', 'weigth decay', 'optimizer']
     hyper = [lr, batchsize, num_epochs, len(
         train_ds), len(valid_ds), s, wd, optimizer]
     PATH_HYPER = Path(
@@ -404,7 +404,7 @@ for epoch in range(num_epochs):
         step += 1
 
         print_to_logs('Training Loss: ' +
-                    str(loss.cpu().detach().numpy()))
+                      str(loss.cpu().detach().numpy()))
 
         with torch.no_grad():
             model.eval()
@@ -417,13 +417,12 @@ for epoch in range(num_epochs):
                 loss = loss_fn(output, targets)
 
                 print_to_logs('Validation Loss: ' +
-                            str(loss.cpu().detach().numpy()))
+                              str(loss.cpu().detach().numpy()))
             model.train()
     if save_model == True:
-        DIR_PATH  = Path(model_directory, './model/')
-        DIR_PATH.mkdir(parents = True, exist_ok=True)
+        DIR_PATH = Path(model_directory, './model/')
+        DIR_PATH.mkdir(parents=True, exist_ok=True)
         FILE_PATH = Path(DIR_PATH, f"./epoch_{str(epoch)}.pth")
         torch.save(model.state_dict(), FILE_PATH)
 
 print_to_logs("Finished training.")
-
