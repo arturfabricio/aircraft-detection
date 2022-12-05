@@ -33,57 +33,59 @@ import math
 import datetime
 from data_aug import *
 from bbox_aug import *
+import visualization
+from typing import Union
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
 dir_root = Path(__file__).parent.parent
 train_imgs = Path(dir_root, './data/train')
 annot_dir = Path(dir_root, './data/annot/rareplanes.json')
 train_im_list = [z for z in os.listdir(train_imgs) if z.endswith('.png')]
-f = open(annot_dir)
-data = json.load(f)
+data = json.load(open(annot_dir))
 assert len(train_im_list) == len(data['images'])
 
 ### Hyperparameters #############
+
+
 def loss_fn(output, target):
     loss = torch.mean((output-target)**2)
     sum_loss = torch.sum(target)
     if sum_loss == 0:
         return loss
     else:
-        return torch.divide(loss,sum_loss)
-    # num_planes = torch.sum(target)
-    # print(num_planes)
-    # return torch.where(num_planes > 0,
-    #                    x=torch.mean((output - target) ** 2) /
-    #                    torch.sum(target),
-    #                    y=torch.mean((output - target) ** 2))
+        return torch.divide(loss, sum_loss)
+
 
 s = 4
 lr = 10e-4
 batchsize = 64
 num_epochs = 75
-validation_every_steps = 100
-load_few_images = False
+# Nr of images to load, set to False to load all
+image_load_count: Union[int, bool] = False
 train_model = True
 print_logs = True
 save_model = True
 augment = True
-wd = 10e-4 
+wd = 10e-4
 #################################
 
 ### Functions ###
+
 
 def stack_to_numpy(row):
     out = np.array(row['bbox']).astype("float64")
     return out
 
+
 def resize_im_rowwise(row):
     return bbox_utils.transformsImg(row['path'], new_size)
 
+
 def resize_bbox_rowwise(row):
-    return bbox_utils.transformsBbox(row['bbox'], ratio)
+    return np.array(bbox_utils.transformsBbox(row['bbox'], ratio), dtype='float64')
 
 ### Processing ###
+
 
 print("Started running!")
 
@@ -98,8 +100,9 @@ annot_data.rename(columns={"image_fname": "name"}, inplace=True)
 annot_data = annot_data.groupby(['image_id']).agg(
     tuple).applymap(np.array).reset_index()
 
-if load_few_images == True:
-    annot_data.drop(annot_data.index.to_list()[3:], axis=0, inplace=True)
+if image_load_count != False:
+    annot_data.drop(annot_data.index.to_list()[
+                    image_load_count:], axis=0, inplace=True)
 
 annot_data['path'] = annot_data.apply(
     lambda row: str(train_imgs) + "/"+row['name'][0], axis=1)
@@ -110,7 +113,8 @@ ratio = int(512/new_size)
 
 annot_data['image'] = annot_data.apply(resize_im_rowwise, axis=1)
 annot_data['bbox'] = annot_data.apply(resize_bbox_rowwise, axis=1)
-annot_data['np_bboxes'] = annot_data.apply(lambda row: stack_to_numpy(row), axis=1)
+annot_data['np_bboxes'] = annot_data.apply(
+    lambda row: stack_to_numpy(row), axis=1)
 
 if augment == True:
 
@@ -121,11 +125,13 @@ if augment == True:
     print("Init time: ", datetime.datetime.now())
     print("Initial amount of images: ", len(annot_data['image']))
 
-    def rotate(row,angle):
-        new_img, new_bboxs = RandomRotate(angle)(row['image'], row['np_bboxes'])
+    def rotate(row, angle):
+        new_img, new_bboxs = RandomRotate(angle)(
+            row['image'], row['np_bboxes'])
         return new_img, new_bboxs
 
-    annot_data_rotate["image"], annot_data_rotate["bbox"] = zip(*annot_data_rotate.apply(lambda row: rotate(row,30), axis=1))
+    annot_data_rotate["image"], annot_data_rotate["bbox"] = zip(
+        *annot_data_rotate.apply(lambda row: rotate(row, 30), axis=1))
     annot_data = annot_data.append(annot_data_rotate, ignore_index=True)
     # annot_data_rotate["image"], annot_data_rotate["bbox"] = zip(*annot_data_rotate.apply(lambda row: rotate(row,60), axis=1))
     # annot_data = annot_data.append(annot_data_rotate, ignore_index=True)
@@ -148,11 +154,13 @@ if augment == True:
 
     print("Final rotate time: ", datetime.datetime.now())
 
-    def scale(row,ratio):
-        new_img, new_bboxs = RandomScale(ratio, diff = True)(row['image'], row['np_bboxes'])
+    def scale(row, ratio):
+        new_img, new_bboxs = RandomScale(ratio, diff=True)(
+            row['image'], row['np_bboxes'])
         return new_img, new_bboxs
 
-    annot_data_rscale["image"], annot_data_rscale["bbox"] = zip(*annot_data_rscale.apply(lambda row: scale(row,0.2), axis=1))
+    annot_data_rscale["image"], annot_data_rscale["bbox"] = zip(
+        *annot_data_rscale.apply(lambda row: scale(row, 0.2), axis=1))
     annot_data = annot_data.append(annot_data_rscale, ignore_index=True)
     # annot_data_rscale["image"], annot_data_rscale["bbox"] = zip(*annot_data_rscale.apply(lambda row: scale(row,0.4), axis=1))
     # annot_data = annot_data.append(annot_data_rscale, ignore_index=True)
@@ -163,12 +171,13 @@ if augment == True:
 
     print("Final scale time: ", datetime.datetime.now())
 
-
-    def translate(row,ratio):
-        new_img, new_bboxs = RandomTranslate(ratio, diff = True)(row['image'], row['np_bboxes'])
+    def translate(row, ratio):
+        new_img, new_bboxs = RandomTranslate(
+            ratio, diff=True)(row['image'], row['np_bboxes'])
         return new_img, new_bboxs
 
-    annot_data_rscale["image"], annot_data_rscale["bbox"] = zip(*annot_data_rscale.apply(lambda row: translate(row,0.2), axis=1))
+    annot_data_rscale["image"], annot_data_rscale["bbox"] = zip(
+        *annot_data_rscale.apply(lambda row: translate(row, 0.2), axis=1))
     annot_data = annot_data.append(annot_data_rscale, ignore_index=True)
     # annot_data_rscale["image"], annot_data_rscale["bbox"] = zip(*annot_data_rscale.apply(lambda row: translate(row,0.4), axis=1))
     # annot_data = annot_data.append(annot_data_rscale, ignore_index=True)
@@ -179,7 +188,9 @@ if augment == True:
 
     print("Final translate time: ", datetime.datetime.now())
 
-    annot_data.drop(['np_bboxes','path'], axis=1, inplace=True)
+    print(len(annot_data))
+
+    annot_data.drop(['np_bboxes', 'path'], axis=1, inplace=True)
     # plotted_img = draw_rect(annot_data['image'][len(annot_data['bbox'])-1].copy(), annot_data['bbox'][len(annot_data['bbox'])-1].copy())
     # plt.imshow(plotted_img)
     # plt.show()
@@ -187,10 +198,18 @@ if augment == True:
     print("Augmented amount of images: ", len(annot_data['image']))
     print("Final time: ", datetime.datetime.now())
 
+# image_id = 0
+
+# for i in range(image_load_count*2, len(annot_data['image'][image_id])):
+#     print(annot_data['bbox'][i])
+#     visualization.plot(annot_data['image'][i],
+#                        annot_data['bbox'][i])
+
 bboxs = bbox_utils.generate(s, 130//4, 10, (128, 128))
 
 np_bboxs = np.asarray(list(
     map(lambda BBOX: [BBOX.arr[0], BBOX.arr[1], BBOX.arr[2], BBOX.arr[3]], bboxs)))
+
 
 def calculate_iou_rowwise(row):
     target_vector = np.zeros(len(np_bboxs))
@@ -212,14 +231,16 @@ def calculate_iou_rowwise(row):
     # print(sum(target_vector))
     return target_vector
 
+
 annot_data['target_vector'] = annot_data.apply(calculate_iou_rowwise, axis=1)
-#display_bbox_target_vector(annot_data)
+# display_bbox_target_vector(annot_data)
 
 annot_data = annot_data.reset_index()
 X = annot_data['image']
 Y = annot_data['target_vector']
 X_train, X_val, y_train, y_val = train_test_split(
     X, Y, test_size=0.15, random_state=42)
+
 
 class AircraftDataset(Dataset):
     def __init__(self, images, y):
@@ -234,14 +255,17 @@ class AircraftDataset(Dataset):
         y = self.y[idx]
         return path, y
 
+
 train_ds = AircraftDataset(X_train, y_train)
 valid_ds = AircraftDataset(X_val, y_val)
 
 batch_size = 64
 train_dl = DataLoader(train_ds, batch_size=batch_size,
-                    shuffle=True, num_workers=0, drop_last=False)
+                      shuffle=True, num_workers=0, drop_last=False)
 valid_dl = DataLoader(valid_ds, batch_size=batch_size,
-                    shuffle=False, num_workers=0, drop_last=False)
+                      shuffle=False, num_workers=0, drop_last=False)
+
+start_time = str(time.time())
 
 if train_model == True:
 
@@ -317,17 +341,24 @@ if train_model == True:
             x = self.connected(x)
             return x
 
+    LOG_PATH = Path(
+        dir_root, f'./data/model/logs/{start_time}.csv')
+
+    def print_to_logs(to_print: str):
+        with open(LOG_PATH, 'a') as file:
+            file.write(to_print + '\n')
 
     model = AircraftModel().double()
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')  # use cuda or cpu
+    device = torch.device('cuda' if torch.cuda.is_available()
+                          else 'cpu')  # use cuda or cpu
     print("Used device: ", device)
     model.to(device)
     print(model)
 
-    #out = model(torch.randn(batchsize, 3, 128, 128, device=device))
+    # out = model(torch.randn(batchsize, 3, 128, 128, device=device))
     # print("Output shape:", out.size())
     # print(f"Output logits:\n{out.detach().cpu().numpy()}")
-    optimizer = optim.Adam(model.parameters(), lr,weight_decay=wd)
+    optimizer = optim.Adam(model.parameters(), lr, weight_decay=wd)
 
     convert_tensor = transforms.ToTensor()
     step = 0
@@ -336,73 +367,55 @@ if train_model == True:
     train_accuracies = []
     valid_accuracies = []
 
-    #start_time = str(time.time())
     start_time = datetime.datetime.now()
-    
     if print_logs == True:
         titles = ['learning rate', 'batchsize', 'epochs',
-                'train_images', 'val_images', 's', 'weigth decay','optimizer']
+                  'train_images', 'val_images', 's', 'weigth decay', 'optimizer']
         hyper = [lr, batchsize, num_epochs, len(
             train_ds), len(valid_ds), s, wd, optimizer]
-        PATH_HYPER = Path(dir_root, f'./data/model/logs/hyper_{start_time}.csv')
+        PATH_HYPER = Path(
+            dir_root, f'./data/model/logs/hyper_{start_time}.csv')
         with open(PATH_HYPER, 'a', newline='') as myfile:
             wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
             wr.writerow(titles)
             wr.writerow(hyper)
 
     for epoch in range(num_epochs):
-        print("Epoch number: ", epoch)
+        print('started some epoch')
+        print_to_logs("Epoch number: " + str(epoch))
         for inputs, targets in train_dl:
-            
+
             inputs, targets = inputs.to(device), targets.to(device)
-            inputs = torch.permute(inputs,(0,3,1,2))
+            inputs = torch.permute(inputs, (0, 3, 1, 2))
 
             optimizer.zero_grad()
             output = model(inputs)
 
-            print("targets: ", targets)
-            print("output: ", output)
-
-            loss = loss_fn(output, targets) ##There's an error here
+            loss = loss_fn(output, targets)  # There's an error here
             loss.backward()
             optimizer.step()
 
             # Increment step counter
             step += 1
 
-            if print_logs == True:
-                PATH_TRAIN = Path(
-                    dir_root, f'./data/model/logs/logs_train_{start_time}.csv')
-                
-                with open(PATH_TRAIN, 'a', newline='') as myfile:
-                    wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
-                    wr.writerow([loss.cpu().detach().numpy()])  # [int(acc)])
+            print_to_logs('Training Loss: ' +
+                          str(loss.cpu().detach().numpy()))
 
-            if step % validation_every_steps == 0:
+            with torch.no_grad():
+                model.eval()
+                for inputs, targets in valid_dl:
+                    inputs, targets = inputs.to(device), targets.to(device)
+                    inputs = torch.permute(inputs, (0, 3, 1, 2))
 
-                with torch.no_grad():
-                    model.eval()
-                    for inputs, targets in valid_dl:
-                        inputs, targets = inputs.to(device), targets.to(device)
-                        inputs = torch.permute(inputs,(0,3,1,2))
+                    optimizer.zero_grad()
+                    output = model(inputs)
+                    loss = loss_fn(output, targets)
 
-                        optimizer.zero_grad()
-                        output = model(inputs)
+                    print_to_logs('Validation Loss: ' +
+                                  str(loss.cpu().detach().numpy()))
+                model.train()
 
-                        print("targets: ", targets)
-                        print("output: ", output)
-
-                        loss = loss_fn(output, targets) 
-                        
-                        if print_logs == True:
-                            PATH_TRAIN = Path(
-                                dir_root, f'./data/model/logs/logs_val_{start_time}.csv')
-                            with open(PATH_TRAIN, 'a', newline='') as myfile:
-                                wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
-                                wr.writerow([loss.cpu().detach().numpy()])
-                    model.train()
-
-    print("Finished training.")
+    print_to_logs("Finished training.")
 
     if save_model == True:
         PATH = os.path.join(dir_root, f'./data/model/{start_time}.pth')
