@@ -414,9 +414,11 @@ if train_model == True:
                     print_to_logs('Validation Loss: ' +
                                   str(loss.cpu().detach().numpy()))
                 model.train()
+        if save_model == True:
+            DIR_PATH  = Path(dir_root,  f'./data/model/{start_time}/')
+            DIR_PATH.mkdir(parents = True, exist_ok=True)
+            FILE_PATH = Path(DIR_PATH, f"./epoch_{str(epoch)}.pth")
+            torch.save(model.state_dict(), FILE_PATH)
 
     print_to_logs("Finished training.")
 
-    if save_model == True:
-        PATH = os.path.join(dir_root, f'./data/model/{start_time}.pth')
-        torch.save(model.state_dict(), PATH)
