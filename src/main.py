@@ -351,7 +351,7 @@ LOG_PATH = Path(
 
 def print_to_logs(to_print: str):
     with open(LOG_PATH, 'a') as file:
-        file.write(to_print + '\n')
+        file.write(f'{time.time()} - ' + to_print + '\n')
 
 
 model = AircraftModel().double()
