@@ -1,3 +1,4 @@
+from time import localtime, strftime
 import os
 import json
 import random
@@ -61,7 +62,7 @@ lr = 10e-4
 batchsize = 64
 num_epochs = 75
 # Nr of images to load, set to False to load all
-image_load_count: Union[int, bool] = False
+image_load_count: Union[int, bool] = 5
 train_model = True
 print_logs = True
 save_model = True
@@ -259,11 +260,16 @@ valid_ds = AircraftDataset(X_val, y_val)
 
 batch_size = 64
 train_dl = DataLoader(train_ds, batch_size=batch_size,
-                      shuffle=True, num_workers=8, drop_last=False)
+                      shuffle=True, drop_last=False)
 valid_dl = DataLoader(valid_ds, batch_size=batch_size,
-                      shuffle=False, num_workers=8, drop_last=False)
+                      shuffle=False, drop_last=False)
 
-start_time = str(time.time())
+
+def get_local_time() -> str:
+    return strftime("%Y-%m-%d %H:%M:%S", localtime())
+
+
+start_time: str = get_local_time().replace(':', '_')
 
 if train_model == False:
     exit(0)
@@ -351,7 +357,8 @@ LOG_PATH = Path(
 
 def print_to_logs(to_print: str):
     with open(LOG_PATH, 'a') as file:
-        file.write(f'{time.time()} - ' + to_print + '\n')
+        file.write(
+            f'{get_local_time()} - ' + to_print + '\n')
 
 
 model = AircraftModel().double()
