@@ -61,7 +61,7 @@ lr = 10e-4
 batchsize = 64
 num_epochs = 75
 # Nr of images to load, set to False to load all
-image_load_count: Union[int, bool] = False
+image_load_count: Union[int, bool] = 3
 train_model = True
 print_logs = True
 save_model = True
@@ -267,158 +267,163 @@ valid_dl = DataLoader(valid_ds, batch_size=batch_size,
 
 start_time = str(time.time())
 
-if train_model == True:
+if train_model == False:
+    exit(0)
 
-    class AircraftModel(nn.Module):
-        def __init__(self):
-            super(AircraftModel, self).__init__()
-            self.conv = nn.Sequential(
-                Conv2d(3, 192, kernel_size=7, stride=2),
-                nn.LeakyReLU(0.1),
-                MaxPool2d(2, 2),
-                Conv2d(192, 256, 3, 1),
-                nn.LeakyReLU(0.1),
-                MaxPool2d(2, 2),
-                # Conv2d(256,128,1,1),
-                # nn.LeakyReLU(0.1),
-                # Conv2d(128,256,1,1),
-                # nn.LeakyReLU(0.1),
-                # Conv2d(256,256,1,1),
-                # nn.LeakyReLU(0.1),
-                # Conv2d(256,512,1,1),
-                # nn.LeakyReLU(0.1),
-                # MaxPool2d(2,2),
-                # Conv2d(512,256,1,1),
-                # nn.LeakyReLU(0.1),
-                # Conv2d(256,512,1,1),
-                # nn.LeakyReLU(0.1),
-                # Conv2d(512,256,1,1),
-                # nn.LeakyReLU(0.1),
-                # Conv2d(256,512,1,1),
-                # nn.LeakyReLU(0.1),
-                # Conv2d(512,256,1,1),
-                # nn.LeakyReLU(0.1),
-                # Conv2d(256,512,1,1),
-                # nn.LeakyReLU(0.1),
-                # Conv2d(512,256,1,1),
-                # nn.LeakyReLU(0.1),
-                # Conv2d(256,512,1,1),
-                # nn.LeakyReLU(0.1),
-                # Conv2d(512,1024,1,1),
-                # nn.LeakyReLU(0.1),
-                # Conv2d(1024,512,1,1),
-                # nn.LeakyReLU(0.1),
-                # # MaxPool2d(2,2),
-                # Conv2d(512,1024,1,1),
-                # nn.LeakyReLU(0.1),
-                # Conv2d(1024,512,1,1),
-                # nn.LeakyReLU(0.1),
-                # Conv2d(512,1024,1,1),
-                # nn.LeakyReLU(0.1),
-                # Conv2d(1024,512,1,1),
-                # nn.LeakyReLU(0.1),
-                # Conv2d(512,1024,1,1),
-                # nn.LeakyReLU(0.1),
-                # Conv2d(1024,1024,1,2),
-                # nn.LeakyReLU(0.1),
-                # Conv2d(1024,1024,1,1),
-                # nn.LeakyReLU(0.1),
-                Conv2d(256, 512, 1, 1),
-                nn.LeakyReLU(0.1),
-                nn.Flatten(start_dim=1),
-                nn.Dropout(0.5)
-            )
 
-            self.connected = nn.Sequential(
-                # (128*128,out_features=1024, bias=False),
-                nn.LazyLinear(out_features=64),
-                nn.ReLU(),
-                nn.Linear(64, out_features=len(bboxs), bias=False)
-            )
+class AircraftModel(nn.Module):
+    def __init__(self):
+        super(AircraftModel, self).__init__()
+        self.conv = nn.Sequential(
+            Conv2d(3, 192, kernel_size=7, stride=2),
+            nn.LeakyReLU(0.1),
+            MaxPool2d(2, 2),
+            Conv2d(192, 256, 3, 1),
+            nn.LeakyReLU(0.1),
+            MaxPool2d(2, 2),
+            # Conv2d(256,128,1,1),
+            # nn.LeakyReLU(0.1),
+            # Conv2d(128,256,1,1),
+            # nn.LeakyReLU(0.1),
+            # Conv2d(256,256,1,1),
+            # nn.LeakyReLU(0.1),
+            # Conv2d(256,512,1,1),
+            # nn.LeakyReLU(0.1),
+            # MaxPool2d(2,2),
+            # Conv2d(512,256,1,1),
+            # nn.LeakyReLU(0.1),
+            # Conv2d(256,512,1,1),
+            # nn.LeakyReLU(0.1),
+            # Conv2d(512,256,1,1),
+            # nn.LeakyReLU(0.1),
+            # Conv2d(256,512,1,1),
+            # nn.LeakyReLU(0.1),
+            # Conv2d(512,256,1,1),
+            # nn.LeakyReLU(0.1),
+            # Conv2d(256,512,1,1),
+            # nn.LeakyReLU(0.1),
+            # Conv2d(512,256,1,1),
+            # nn.LeakyReLU(0.1),
+            # Conv2d(256,512,1,1),
+            # nn.LeakyReLU(0.1),
+            # Conv2d(512,1024,1,1),
+            # nn.LeakyReLU(0.1),
+            # Conv2d(1024,512,1,1),
+            # nn.LeakyReLU(0.1),
+            # # MaxPool2d(2,2),
+            # Conv2d(512,1024,1,1),
+            # nn.LeakyReLU(0.1),
+            # Conv2d(1024,512,1,1),
+            # nn.LeakyReLU(0.1),
+            # Conv2d(512,1024,1,1),
+            # nn.LeakyReLU(0.1),
+            # Conv2d(1024,512,1,1),
+            # nn.LeakyReLU(0.1),
+            # Conv2d(512,1024,1,1),
+            # nn.LeakyReLU(0.1),
+            # Conv2d(1024,1024,1,2),
+            # nn.LeakyReLU(0.1),
+            # Conv2d(1024,1024,1,1),
+            # nn.LeakyReLU(0.1),
+            Conv2d(256, 512, 1, 1),
+            nn.LeakyReLU(0.1),
+            nn.Flatten(start_dim=1),
+            nn.Dropout(0.5)
+        )
 
-        def forward(self, x):
-            x = self.conv(x)
-            x = self.connected(x)
-            return x
+        self.connected = nn.Sequential(
+            # (128*128,out_features=1024, bias=False),
+            nn.LazyLinear(out_features=64),
+            nn.ReLU(),
+            nn.Linear(64, out_features=len(bboxs), bias=False)
+        )
 
-    LOG_PATH = Path(
-        dir_root, f'./data/model/logs/{start_time}.csv')
+    def forward(self, x):
+        x = self.conv(x)
+        x = self.connected(x)
+        return x
 
-    def print_to_logs(to_print: str):
-        with open(LOG_PATH, 'a') as file:
-            file.write(to_print + '\n')
+model_directory  = Path(dir_root,  f'./data/model/{start_time}/')
+model_directory.mkdir(parents = True, exist_ok=True)
 
-    model = AircraftModel().double()
-    device = torch.device('cuda' if torch.cuda.is_available()
-                          else 'cpu')  # use cuda or cpu
-    print("Used device: ", device)
-    model.to(device)
-    print(model)
+LOG_PATH = Path(
+    model_directory, f'./logs.log')
 
-    # out = model(torch.randn(batchsize, 3, 128, 128, device=device))
-    # print("Output shape:", out.size())
-    # print(f"Output logits:\n{out.detach().cpu().numpy()}")
-    optimizer = optim.Adam(model.parameters(), lr, weight_decay=wd)
+def print_to_logs(to_print: str):
+    with open(LOG_PATH, 'a') as file:
+        file.write(to_print + '\n')
 
-    convert_tensor = transforms.ToTensor()
-    step = 0
-    model.train()
+model = AircraftModel().double()
+device = torch.device('cuda' if torch.cuda.is_available()
+                    else 'cpu')  # use cuda or cpu
+print("Used device: ", device)
+model.to(device)
+print(model)
 
-    train_accuracies = []
-    valid_accuracies = []
+# out = model(torch.randn(batchsize, 3, 128, 128, device=device))
+# print("Output shape:", out.size())
+# print(f"Output logits:\n{out.detach().cpu().numpy()}")
+optimizer = optim.Adam(model.parameters(), lr, weight_decay=wd)
 
-    start_time = datetime.datetime.now()
-    if print_logs == True:
-        titles = ['learning rate', 'batchsize', 'epochs',
-                  'train_images', 'val_images', 's', 'weigth decay', 'optimizer']
-        hyper = [lr, batchsize, num_epochs, len(
-            train_ds), len(valid_ds), s, wd, optimizer]
-        PATH_HYPER = Path(
-            dir_root, f'./data/model/logs/hyper_{start_time}.csv')
-        with open(PATH_HYPER, 'a', newline='') as myfile:
-            wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
-            wr.writerow(titles)
-            wr.writerow(hyper)
+convert_tensor = transforms.ToTensor()
+step = 0
+model.train()
 
-    for epoch in range(num_epochs):
-        print('started some epoch')
-        print_to_logs("Epoch number: " + str(epoch))
-        for inputs, targets in train_dl:
+train_accuracies = []
+valid_accuracies = []
 
-            inputs, targets = inputs.to(device), targets.to(device)
-            inputs = torch.permute(inputs, (0, 3, 1, 2))
+start_time = datetime.datetime.now()
+if print_logs == True:
+    titles = ['learning rate', 'batchsize', 'epochs',
+            'train_images', 'val_images', 's', 'weigth decay', 'optimizer']
+    hyper = [lr, batchsize, num_epochs, len(
+        train_ds), len(valid_ds), s, wd, optimizer]
+    PATH_HYPER = Path(
+        model_directory, "hyper_parameters.csv")
+    with open(PATH_HYPER, 'a', newline='') as myfile:
+        wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
+        wr.writerow(titles)
+        wr.writerow(hyper)
 
-            optimizer.zero_grad()
-            output = model(inputs)
+for epoch in range(num_epochs):
 
-            loss = loss_fn(output, targets)  # There's an error here
-            loss.backward()
-            optimizer.step()
+    print_to_logs("Epoch number: " + str(epoch))
+    for inputs, targets in train_dl:
 
-            # Increment step counter
-            step += 1
+        inputs, targets = inputs.to(device), targets.to(device)
+        inputs = torch.permute(inputs, (0, 3, 1, 2))
 
-            print_to_logs('Training Loss: ' +
-                          str(loss.cpu().detach().numpy()))
+        optimizer.zero_grad()
+        output = model(inputs)
 
-            with torch.no_grad():
-                model.eval()
-                for inputs, targets in valid_dl:
-                    inputs, targets = inputs.to(device), targets.to(device)
-                    inputs = torch.permute(inputs, (0, 3, 1, 2))
+        loss = loss_fn(output, targets)  # There's an error here
+        loss.backward()
+        optimizer.step()
 
-                    optimizer.zero_grad()
-                    output = model(inputs)
-                    loss = loss_fn(output, targets)
+        # Increment step counter
+        step += 1
 
-                    print_to_logs('Validation Loss: ' +
-                                  str(loss.cpu().detach().numpy()))
-                model.train()
-        if save_model == True:
-            DIR_PATH  = Path(dir_root,  f'./data/model/{start_time}/')
-            DIR_PATH.mkdir(parents = True, exist_ok=True)
-            FILE_PATH = Path(DIR_PATH, f"./epoch_{str(epoch)}.pth")
-            torch.save(model.state_dict(), FILE_PATH)
+        print_to_logs('Training Loss: ' +
+                    str(loss.cpu().detach().numpy()))
 
-    print_to_logs("Finished training.")
+        with torch.no_grad():
+            model.eval()
+            for inputs, targets in valid_dl:
+                inputs, targets = inputs.to(device), targets.to(device)
+                inputs = torch.permute(inputs, (0, 3, 1, 2))
+
+                optimizer.zero_grad()
+                output = model(inputs)
+                loss = loss_fn(output, targets)
+
+                print_to_logs('Validation Loss: ' +
+                            str(loss.cpu().detach().numpy()))
+            model.train()
+    if save_model == True:
+        DIR_PATH  = Path(model_directory, './model/')
+        DIR_PATH.mkdir(parents = True, exist_ok=True)
+        FILE_PATH = Path(DIR_PATH, f"./epoch_{str(epoch)}.pth")
+        torch.save(model.state_dict(), FILE_PATH)
+
+print_to_logs("Finished training.")
 
