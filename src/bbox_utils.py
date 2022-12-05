@@ -23,19 +23,22 @@ def contains(list, filter):
     return False
 
 
-def generate(s, n, increment, im_shape) -> list[BBOX]:
+def generate(s, bbox_count, max_size, im_shape) -> list[BBOX]:
     scaling = 1.0/s+2
 
     bbox_final = []
     x_list, y_list, _ = get_referencepoints(im_shape, s)
-    for x in x_list:
-        for y in y_list:
-            for i in range(0, n, increment):
 
-                bbox_final.append(BBOX(x - (i // 2),   y - (i // 2),   i,   i))
-                bbox_final.append(BBOX(x - (i*2 // 2), y - (i // 2),   i*2, i))
-                bbox_final.append(
-                    BBOX(x - (i // 2),   y - (i*2 // 2), i,   i*2))
+    for idx in range(len(x_list)):
+        ref_x, ref_y = x_list[idx], y_list[idx]
+
+        for i in list(np.linspace(max_size, 0, num=bbox_count, endpoint=False)):
+            bbox_final.append(
+                BBOX(ref_x - (i // 2),   ref_y - (i // 2),   i,   i))
+            bbox_final.append(
+                BBOX(ref_x - (i*2 // 2), ref_y - (i // 2),   i*2, i))
+            bbox_final.append(
+                BBOX(ref_x - (i // 2),   ref_y - (i*2 // 2), i,   i*2))
 
     return bbox_final
 

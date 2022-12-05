@@ -51,35 +51,29 @@ assert len(train_im_list) == len(data['images'])
 def loss_fn(output, target):
     loss = torch.mean((output-target)**2)
     plane_count = torch.sum(target)
-    print("output: ", output)
-    print("target: ", target)
-    print("loss: ", loss)
-    print("plane_count: ", plane_count)
     if plane_count == 0:
         return loss
     else:
         return torch.divide(loss, plane_count)
 
 
-s = 1
-lr = 10e-8
+s = 4
+lr = 10e-6
 batchsize = 64
-num_epochs = 500
+num_epochs = 1000
+
 # Nr of images to load, set to False to load all
+start_from_image: int = 500
 image_load_count: Union[int, bool] = 1
+
 train_model = True
 print_logs = True
 save_model = True
 augment = True
-wd = 0       
+wd = 0
 #################################
 
 ### Functions ###
-
-
-def stack_to_numpy(row):
-    out = np.array(row['bbox']).astype("float64")
-    return out
 
 
 def resize_im_rowwise(row):
@@ -106,8 +100,12 @@ annot_data = annot_data.groupby(['image_id']).agg(
     tuple).applymap(np.array).reset_index()
 
 if image_load_count != False:
-    annot_data.drop(annot_data.index.to_list()[
-                    image_load_count:], axis=0, inplace=True)
+    idxs = annot_data.index.to_list()
+    delete_before = idxs[:(start_from_image)]
+    delete_after = idxs[(start_from_image + image_load_count):]
+
+    annot_data.drop(delete_after, axis=0, inplace=True)
+    annot_data.drop(delete_before, axis=0, inplace=True)
 
 annot_data['path'] = annot_data.apply(
     lambda row: str(train_imgs) + "/"+row['name'][0], axis=1)
@@ -119,7 +117,7 @@ ratio = int(512/new_size)
 annot_data['image'] = annot_data.apply(resize_im_rowwise, axis=1)
 annot_data['bbox'] = annot_data.apply(resize_bbox_rowwise, axis=1)
 annot_data['np_bboxes'] = annot_data.apply(
-    lambda row: stack_to_numpy(row), axis=1)
+    lambda row: np.array(row['bbox']).astype("float64"), axis=1)
 
 if augment == True:
 
@@ -136,7 +134,7 @@ if augment == True:
         return new_img, new_bboxs
 
     annot_data_rotate["image"], annot_data_rotate["bbox"] = zip(
-        *annot_data_rotate.apply(lambda row: rotate(row, 30), axis=1))
+        *annot_data_rotate.apply(lambda row: rotate(row, 180.0), axis=1))
     annot_data = annot_data.append(annot_data_rotate, ignore_index=True)
     # annot_data_rotate["image"], annot_data_rotate["bbox"] = zip(*annot_data_rotate.apply(lambda row: rotate(row,60), axis=1))
     # annot_data = annot_data.append(annot_data_rotate, ignore_index=True)
@@ -201,17 +199,22 @@ if augment == True:
     print("Augmented amount of images: ", len(annot_data['image']))
     print("Final time: ", datetime.datetime.now())
 
+
+# Prints dataset with bounding boxes
 # image_id = 0
-
-# for i in range(image_load_count*2, len(annot_data['image'][image_id])):
+# for i in range(0, len(annot_data['image'])):
 #     print(annot_data['bbox'][i])
-#     visualization.plot(annot_data['image'][i],
-#                        annot_data['bbox'][i])
+#     visualization.display_bboxs(annot_data['image'][i],
+#                                 annot_data['bbox'][i])
 
-bboxs = bbox_utils.generate(s, 130//4, 10, (128, 128))
+bboxs = bbox_utils.generate(s, 3, 64, (128, 128))
 
 np_bboxs = np.asarray(list(
     map(lambda BBOX: [BBOX.arr[0], BBOX.arr[1], BBOX.arr[2], BBOX.arr[3]], bboxs)))
+
+print('nr of bboxes ', len(bboxs))
+# print(np_bboxs)
+# visualization.display_bboxs(annot_data['image'][0], np_bboxs)
 
 
 def calculate_iou_rowwise(row):
@@ -229,14 +232,21 @@ def calculate_iou_rowwise(row):
         iou = np.divide(interArea, (np.subtract(
             np.add(boxAArea, boxBArea), interArea)))
         b = np.zeros_like(iou)
-        b[np.argmax(iou, axis=0)] = 1
+
+        arg_best_match = np.argmax(iou, axis=0)
+        if iou[arg_best_match] != 0:
+            b[arg_best_match] = 1
         target_vector = target_vector + b
-    # print(sum(target_vector))
+
     return target_vector
 
 
 annot_data['target_vector'] = annot_data.apply(calculate_iou_rowwise, axis=1)
-# display_bbox_target_vector(annot_data)
+
+# Prints the target vectors bounding boxes
+for i in range(0, len(annot_data['image'])):
+    visualization.display_bbox_target_vector(
+        annot_data['image'][i], annot_data['target_vector'][i], np_bboxs, 0.5)
 
 annot_data = annot_data.reset_index()
 X = annot_data['image']
@@ -266,7 +276,7 @@ batch_size = 64
 train_dl = DataLoader(train_ds, batch_size=batch_size,
                       shuffle=True, drop_last=False)
 valid_dl = DataLoader(valid_ds, batch_size=batch_size,
-                      shuffle=False, drop_last=False)
+                      shuffle=True, drop_last=False)
 
 
 def get_local_time() -> str:
@@ -366,7 +376,6 @@ def print_to_logs(to_print: str):
 
 
 model = AircraftModel().double()
-print('The model is ', model)
 
 device = torch.device('cuda' if torch.cuda.is_available()
                       else 'cpu')  # use cuda or cpu
@@ -403,7 +412,6 @@ for epoch in range(num_epochs):
 
     train_losses = []
     val_losses = []
-
 
     for inputs, targets in train_dl:
         inputs, targets = inputs.to(device), targets.to(device)
