@@ -372,7 +372,6 @@ model.train()
 train_accuracies = []
 valid_accuracies = []
 
-start_time = datetime.datetime.now()
 if print_logs == True:
     titles = ['learning rate', 'batchsize', 'epochs',
               'train_images', 'val_images', 's', 'weigth decay', 'optimizer']
@@ -385,40 +384,41 @@ if print_logs == True:
         wr.writerow(titles)
         wr.writerow(hyper)
 
+
 for epoch in range(num_epochs):
-
     print_to_logs("Epoch number: " + str(epoch))
+
+    train_losses = []
+    val_losses = []
+
     for inputs, targets in train_dl:
-
         inputs, targets = inputs.to(device), targets.to(device)
-        inputs = torch.permute(inputs, (0, 3, 1, 2))
 
+        inputs = torch.permute(inputs, (0, 3, 1, 2))
         optimizer.zero_grad()
         output = model(inputs)
-
         loss = loss_fn(output, targets)  # There's an error here
         loss.backward()
         optimizer.step()
 
-        # Increment step counter
-        step += 1
+        train_losses.append(loss.detach().cpu().numpy())
 
-        print_to_logs('Training Loss: ' +
-                      str(loss.cpu().detach().numpy()))
+    with torch.no_grad():
+        model.eval()
+        for inputs, targets in valid_dl:
+            inputs, targets = inputs.to(device), targets.to(device)
+            inputs = torch.permute(inputs, (0, 3, 1, 2))
 
-        with torch.no_grad():
-            model.eval()
-            for inputs, targets in valid_dl:
-                inputs, targets = inputs.to(device), targets.to(device)
-                inputs = torch.permute(inputs, (0, 3, 1, 2))
+            optimizer.zero_grad()
+            output = model(inputs)
+            loss = loss_fn(output, targets)
 
-                optimizer.zero_grad()
-                output = model(inputs)
-                loss = loss_fn(output, targets)
+            val_losses.append(loss.detach().cpu().numpy())
+        model.train()
 
-                print_to_logs('Validation Loss: ' +
-                              str(loss.cpu().detach().numpy()))
-            model.train()
+    print_to_logs('Training Loss: ' + str(np.mean(np.array(train_losses))))
+    print_to_logs('Validation Loss: ' + str(np.mean(np.array(val_losses))))
+
     if save_model == True:
         DIR_PATH = Path(model_directory, './model/')
         DIR_PATH.mkdir(parents=True, exist_ok=True)
