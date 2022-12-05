@@ -30,6 +30,7 @@ import cv2
 import matplotlib.patches as patches
 import colorsys
 import math
+import datetime
 from data_aug import *
 from bbox_aug import *
 
@@ -57,12 +58,12 @@ def loss_fn(output, target):
     #                    torch.sum(target),
     #                    y=torch.mean((output - target) ** 2))
 
-s = 10
+s = 4
 lr = 10e-4
 batchsize = 64
-num_epochs = 2
-validation_every_steps = 1
-load_few_images = True
+num_epochs = 75
+validation_every_steps = 100
+load_few_images = False
 train_model = True
 print_logs = True
 save_model = True
@@ -335,7 +336,8 @@ if train_model == True:
     train_accuracies = []
     valid_accuracies = []
 
-    start_time = str(time.time())
+    #start_time = str(time.time())
+    start_time = datetime.datetime.now()
     
     if print_logs == True:
         titles = ['learning rate', 'batchsize', 'epochs',
