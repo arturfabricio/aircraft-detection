@@ -61,7 +61,7 @@ lr = 10e-4
 batchsize = 64
 num_epochs = 75
 # Nr of images to load, set to False to load all
-image_load_count: Union[int, bool] = 3
+image_load_count: Union[int, bool] = False
 train_model = True
 print_logs = True
 save_model = True
@@ -259,9 +259,9 @@ valid_ds = AircraftDataset(X_val, y_val)
 
 batch_size = 64
 train_dl = DataLoader(train_ds, batch_size=batch_size,
-                      shuffle=True, num_workers=0, drop_last=False)
+                      shuffle=True, num_workers=8, drop_last=False)
 valid_dl = DataLoader(valid_ds, batch_size=batch_size,
-                      shuffle=False, num_workers=0, drop_last=False)
+                      shuffle=False, num_workers=8, drop_last=False)
 
 start_time = str(time.time())
 
