@@ -398,8 +398,13 @@ for epoch in range(num_epochs):
     train_losses = []
     val_losses = []
 
+    i = 0
+
     for inputs, targets in train_dl:
         inputs, targets = inputs.to(device), targets.to(device)
+
+        print_to_logs("Stepping in train: " + str(i))
+        i += 1
 
         inputs = torch.permute(inputs, (0, 3, 1, 2))
         optimizer.zero_grad()
@@ -410,11 +415,16 @@ for epoch in range(num_epochs):
 
         train_losses.append(loss.detach().cpu().numpy())
 
+    i = 0
+
     with torch.no_grad():
         model.eval()
         for inputs, targets in valid_dl:
             inputs, targets = inputs.to(device), targets.to(device)
             inputs = torch.permute(inputs, (0, 3, 1, 2))
+
+            print_to_logs("Stepping in test: " + str(i))
+            i += 1
 
             optimizer.zero_grad()
             output = model(inputs)
