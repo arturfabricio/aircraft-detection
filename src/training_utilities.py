@@ -3,11 +3,26 @@ import torch
 import numpy as np
 import model
 
+pos_weight = torch.ones([len(model.bboxs)])  # All weights are equal to 1
+criterion = torch.nn.BCEWithLogitsLoss(pos_weight=pos_weight)
+
+l1_loss = nn.L1Loss()
+
+# Target 0, 1
+# Output 0, 1
+
+
+
 def loss_fn(output, target):
-    return nn.MSELoss()(output, target)
+    plane_count = torch.sum(target)
+    if plane_count == 0:
+        plane_count = torch.tensor(1)
+
+    loss = l1_loss(output, target) + (torch.sum(torch.clamp(target - output, min=0, max=1)) / plane_count)*0.2
+    return loss
     # return nn.BCELoss()(output, target)
     #return nn.CrossEntropyLoss()(output, target)
-    scale = 100
+    scale = 1000
     # print('newly loaded 3')
     # print('output', output)
     # print('target', target)
