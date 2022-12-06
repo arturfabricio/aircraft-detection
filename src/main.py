@@ -15,12 +15,7 @@ from sklearn.model_selection import train_test_split
 import torch
 from torch.utils.data import Dataset, DataLoader
 import torch.optim as optim
-import torch.nn as nn
-import torch.nn.functional as F
-from torch.nn.modules.pooling import MaxPool1d
-from torch.nn import Linear, GRU, Conv2d, Dropout, MaxPool2d, BatchNorm1d, BatchNorm2d
 import bbox_utils
-from bbox_utils import BBOX
 import func_utils
 import warnings
 from func_utils import *
@@ -36,6 +31,8 @@ from data_aug import *
 from bbox_aug import *
 import visualization
 from typing import Union
+import model
+from training_utilities import loss_fn, calculate_iou
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
 dir_root = Path(__file__).parent.parent
@@ -48,30 +45,21 @@ assert len(train_im_list) == len(data['images'])
 ### Hyperparameters #############
 
 
-def loss_fn(output, target):
-    loss = torch.mean((output-target)**2)
-    plane_count = torch.sum(target)
-    if plane_count == 0:
-        return loss
-    else:
-        return torch.divide(loss, plane_count)
-
-
-s = 4
-lr = 10e-6
-batchsize = 64
-num_epochs = 1000
+# 10e-8 is probably too small
+lr = 1e-1
+batchsize = 4
+num_epochs = 500
 
 # Nr of images to load, set to False to load all
-start_from_image: int = 500
-image_load_count: Union[int, bool] = 1
+start_from_image: int = 0
+image_load_count: Union[int, bool] = 200
 
 train_model = True
 print_logs = True
 save_model = True
-augment = True
+augment = False
 wd = 0
-#################################
+#################################``
 
 ### Functions ###
 
@@ -207,46 +195,18 @@ if augment == True:
 #     visualization.display_bboxs(annot_data['image'][i],
 #                                 annot_data['bbox'][i])
 
-bboxs = bbox_utils.generate(s, 3, 64, (128, 128))
 
-np_bboxs = np.asarray(list(
-    map(lambda BBOX: [BBOX.arr[0], BBOX.arr[1], BBOX.arr[2], BBOX.arr[3]], bboxs)))
-
-print('nr of bboxes ', len(bboxs))
-# print(np_bboxs)
-# visualization.display_bboxs(annot_data['image'][0], np_bboxs)
+print('nr of bboxes ', len(model.bboxs))
+# print(model.np_bboxs)
+# visualization.display_bboxs(annot_data['image'][0], model.np_bboxs)
 
 
-def calculate_iou_rowwise(row):
-    target_vector = np.zeros(len(np_bboxs))
-    for bbox in row['bbox']:
-        xA = np.maximum(np_bboxs[:, 0], bbox[0])
-        yA = np.maximum(np_bboxs[:, 1], bbox[1])
-        xB = np.minimum(np_bboxs[:, 2], bbox[2])
-        yB = np.minimum(np_bboxs[:, 3], bbox[3])
-        interArea = np.maximum(0, xB - xA + 1) * np.maximum(0, yB - yA + 1)
-        boxAArea = (np_bboxs[:, 2] - np_bboxs[:, 0] + 1) * \
-            (np_bboxs[:, 3] - np_bboxs[:, 1] + 1)
-        boxBArea = (bbox[2] - bbox[0] + 1) * \
-            (bbox[3] - bbox[1] + 1)
-        iou = np.divide(interArea, (np.subtract(
-            np.add(boxAArea, boxBArea), interArea)))
-        b = np.zeros_like(iou)
+annot_data['target_vector'] = annot_data.apply(lambda row: calculate_iou(row['bbox']), axis=1)
 
-        arg_best_match = np.argmax(iou, axis=0)
-        if iou[arg_best_match] != 0:
-            b[arg_best_match] = 1
-        target_vector = target_vector + b
-
-    return target_vector
-
-
-annot_data['target_vector'] = annot_data.apply(calculate_iou_rowwise, axis=1)
-
-# Prints the target vectors bounding boxes
-for i in range(0, len(annot_data['image'])):
-    visualization.display_bbox_target_vector(
-        annot_data['image'][i], annot_data['target_vector'][i], np_bboxs, 0.5)
+# # Prints the target vectors bounding boxes
+# for i in range(0, len(annot_data['image'])):
+#     visualization.display_bbox_target_vector(
+#         annot_data['image'][i], annot_data['target_vector'][i], model.np_bboxs, 0.5)
 
 annot_data = annot_data.reset_index()
 X = annot_data['image']
@@ -272,10 +232,9 @@ class AircraftDataset(Dataset):
 train_ds = AircraftDataset(X_train, y_train)
 valid_ds = AircraftDataset(X_val, y_val)
 
-batch_size = 64
-train_dl = DataLoader(train_ds, batch_size=batch_size,
+train_dl = DataLoader(train_ds, batch_size=batchsize,
                       shuffle=True, drop_last=False)
-valid_dl = DataLoader(valid_ds, batch_size=batch_size,
+valid_dl = DataLoader(valid_ds, batch_size=batchsize,
                       shuffle=True, drop_last=False)
 
 
@@ -287,79 +246,6 @@ start_time: str = get_local_time().replace(':', '_')
 
 if train_model == False:
     exit(0)
-
-
-class AircraftModel(nn.Module):
-    def __init__(self):
-        super(AircraftModel, self).__init__()
-        self.conv = nn.Sequential(
-            Conv2d(3, 192, kernel_size=7, stride=2),
-            nn.LeakyReLU(0.1),
-            MaxPool2d(2, 2),
-            Conv2d(192, 256, 3, 1),
-            nn.LeakyReLU(0.1),
-            MaxPool2d(2, 2),
-            Conv2d(256, 128, 1, 1),
-            nn.LeakyReLU(0.1),
-            Conv2d(128, 256, 1, 1),
-            nn.LeakyReLU(0.1),
-            Conv2d(256, 256, 1, 1),
-            nn.LeakyReLU(0.1),
-            Conv2d(256, 512, 1, 1),
-            nn.LeakyReLU(0.1),
-            MaxPool2d(2, 2),
-            Conv2d(512, 256, 1, 1),
-            nn.LeakyReLU(0.1),
-            Conv2d(256, 512, 1, 1),
-            nn.LeakyReLU(0.1),
-            Conv2d(512, 256, 1, 1),
-            nn.LeakyReLU(0.1),
-            Conv2d(256, 512, 1, 1),
-            nn.LeakyReLU(0.1),
-            Conv2d(512, 256, 1, 1),
-            nn.LeakyReLU(0.1),
-            Conv2d(256, 512, 1, 1),
-            nn.LeakyReLU(0.1),
-            Conv2d(512, 256, 1, 1),
-            nn.LeakyReLU(0.1),
-            Conv2d(256, 512, 1, 1),
-            nn.LeakyReLU(0.1),
-            Conv2d(512, 1024, 1, 1),
-            nn.LeakyReLU(0.1),
-            Conv2d(1024, 512, 1, 1),
-            nn.LeakyReLU(0.1),
-            MaxPool2d(2, 2),
-            Conv2d(512, 1024, 1, 1),
-            nn.LeakyReLU(0.1),
-            Conv2d(1024, 512, 1, 1),
-            nn.LeakyReLU(0.1),
-            Conv2d(512, 1024, 1, 1),
-            nn.LeakyReLU(0.1),
-            Conv2d(1024, 512, 1, 1),
-            nn.LeakyReLU(0.1),
-            Conv2d(512, 1024, 1, 1),
-            nn.LeakyReLU(0.1),
-            Conv2d(1024, 1024, 1, 2),
-            nn.LeakyReLU(0.1),
-            Conv2d(1024, 1024, 1, 1),
-            nn.LeakyReLU(0.1),
-            Conv2d(1024, 512, 1, 1),
-            nn.LeakyReLU(0.1),
-            nn.Flatten(start_dim=1),
-            nn.Dropout(0.5)
-        )
-
-        self.connected = nn.Sequential(
-            # (128*128,out_features=1024, bias=False),
-            nn.Linear(in_features=2048, out_features=len(bboxs), bias=False),
-            nn.Sigmoid(),
-            # nn.Linear(in_features=64, out_features=len(bboxs), bias=False)
-        )
-
-    def forward(self, x):
-        x = self.conv(x)
-        x = self.connected(x)
-        return x
 
 
 model_directory = Path(dir_root,  f'./data/model/{start_time}/')
@@ -374,22 +260,21 @@ def print_to_logs(to_print: str):
         file.write(
             f'{get_local_time()} - ' + to_print + '\n')
 
-
-model = AircraftModel().double()
+aircraft_model = model.AircraftModel().double()
 
 device = torch.device('cuda' if torch.cuda.is_available()
                       else 'cpu')  # use cuda or cpu
 print("Used device: ", device)
-model.to(device)
+aircraft_model.to(device)
 
-# out = model(torch.randn(batchsize, 3, 128, 128, device=device))
+# out = aircraft_model(torch.randn(batchsize, 3, 128, 128, device=device))
 # print("Output shape:", out.size())
 # print(f"Output logits:\n{out.detach().cpu().numpy()}")
-optimizer = optim.Adam(model.parameters(), lr, weight_decay=wd)
+optimizer = optim.SGD(aircraft_model.parameters(), lr, weight_decay=wd, momentum=0)
 
 convert_tensor = transforms.ToTensor()
 step = 0
-model.train()
+aircraft_model.train()
 
 train_accuracies = []
 valid_accuracies = []
@@ -398,7 +283,7 @@ if print_logs == True:
     titles = ['learning rate', 'batchsize', 'epochs',
               'train_images', 'val_images', 's', 'weigth decay', 'optimizer']
     hyper = [lr, batchsize, num_epochs, len(
-        train_ds), len(valid_ds), s, wd, optimizer]
+        train_ds), len(valid_ds), model.s, wd, optimizer]
     PATH_HYPER = Path(
         model_directory, "hyper_parameters.csv")
     with open(PATH_HYPER, 'a', newline='') as myfile:
@@ -415,29 +300,32 @@ for epoch in range(num_epochs):
 
     for inputs, targets in train_dl:
         inputs, targets = inputs.to(device), targets.to(device)
-
         inputs = torch.permute(inputs, (0, 3, 1, 2))
+
+        # zero the parameter gradients
         optimizer.zero_grad()
-        output = model(inputs)
-        loss = loss_fn(output, targets)  # There's an error here
-        exit(0)
+
+        # forward + backward + optimize
+        output = aircraft_model(inputs)
+        loss = loss_fn(output, targets)
         loss.backward()
         optimizer.step()
 
-        train_losses.append(loss.detach().cpu().numpy())
+        train_losses.append(loss.item())
 
     with torch.no_grad():
-        model.eval()
+        aircraft_model.eval()
         for inputs, targets in valid_dl:
             inputs, targets = inputs.to(device), targets.to(device)
             inputs = torch.permute(inputs, (0, 3, 1, 2))
 
-            optimizer.zero_grad()
-            output = model(inputs)
+            # forward + backward + optimize
+            output = aircraft_model(inputs)
             loss = loss_fn(output, targets)
 
-            val_losses.append(loss.detach().cpu().numpy())
-        model.train()
+            val_losses.append(loss.item())
+
+        aircraft_model.train()
 
     print_to_logs('Training Loss: ' + str(np.mean(np.array(train_losses))))
     print_to_logs('Validation Loss: ' + str(np.mean(np.array(val_losses))))
@@ -446,6 +334,6 @@ for epoch in range(num_epochs):
         DIR_PATH = Path(model_directory, './model/')
         DIR_PATH.mkdir(parents=True, exist_ok=True)
         FILE_PATH = Path(DIR_PATH, f"./epoch_{str(epoch)}.pth")
-        torch.save(model.state_dict(), FILE_PATH)
+        torch.save(aircraft_model.state_dict(), FILE_PATH)
 
 print_to_logs("Finished training.")
