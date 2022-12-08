@@ -84,7 +84,7 @@ def get_random_color():
 
 def transformsImg(path, new_size):
     x = cv2.imread(str(path))
-    x = cv2.cvtColor(x, cv2.COLOR_BGR2RGB)/255
+    x = cv2.cvtColor(x, cv2.COLOR_BGR2RGB)
     x = cv2.resize(x, (new_size, new_size))
 
     return x

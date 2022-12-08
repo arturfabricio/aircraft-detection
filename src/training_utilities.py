@@ -17,8 +17,9 @@ def loss_fn(output, target):
     plane_count = torch.sum(target)
     if plane_count == 0:
         plane_count = torch.tensor(1)
-
-    loss = l1_loss(output, target) + (torch.sum(torch.clamp(target - output, min=0, max=1)) / plane_count)*0.2
+    l1_loss = l1_loss(output, target)
+    LM_CONSTANT = 1/l1_loss
+    loss = l1_loss(output, target) + (torch.sum(torch.clamp(target - output, min=0, max=1)) / plane_count)*LM_CONSTANT
     return loss
     # return nn.BCELoss()(output, target)
     #return nn.CrossEntropyLoss()(output, target)
