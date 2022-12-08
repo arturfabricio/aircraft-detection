@@ -1,0 +1,20 @@
+RUN ___________________________________________________________________________________________
+"learning rate","batchsize","epochs","train_images","val_images","s","weigth decay","optimizer"
+"0.001","64","2000","4942","873","7","0.0001","SGD (
+Parameter Group 0
+    dampening: 0
+    differentiable: False
+    foreach: None
+    lr: 0.001
+    maximize: False
+    momentum: 0
+    nesterov: False
+    weight_decay: 0.0001
+)"
+
+Not working prob due to loss function airplance constant = 0.4 from 0.2 (WAYYY too trigger happpy)
+
+Final loss
+2022-12-08 09:22:38 - Training Loss: 0.2863628277798741
+2022-12-08 09:22:38 - Epoch number: 1249
+
