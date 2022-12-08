@@ -20,7 +20,7 @@ import warnings
 
 from typing import Union
 import model
-from training_utilities import loss_fn, calculate_iou
+from training_utilities import loss_fn, calculate_target_vector
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
 dir_root = Path(__file__).parent.parent
@@ -33,19 +33,19 @@ train_im_list = [z for z in os.listdir(train_imgs) if z.endswith('.png')]
 # 10e-8 is probably too small
 learning_rate = 1e-1
 momentum = 0.9
-batchsize = 1
+batchsize = 64
 num_epochs = 2000
 
-start_from_image: int = 60
+start_from_image: int = 0
 # Nr of images to load, set to False to load all
-image_load_count: Union[int, bool] = 2
+image_load_count: Union[int, bool] = False
 # Saves the model every number of epochs. Set to False to never save, or True for always
-save_every_epochs: Union[int, bool] = 20
+save_every_epochs: Union[int, bool] = 2
 
 
 train_model = True
 print_logs = True
-weight_decay = 1e-4
+weight_decay = 0
 augment = True
 #################################``
 
@@ -85,7 +85,7 @@ annot_data['path'] = annot_data.apply(
     lambda row: str(train_imgs) + "/"+row['name'][0], axis=1)
 annot_data.drop(['name', 'image_id'], axis=1, inplace=True)
 
-new_size = 128
+new_size = model.IMAGE_SIZE[0]
 ratio = int(512/new_size)
 
 annot_data['image'] = annot_data.apply(resize_im_rowwise, axis=1)
@@ -95,56 +95,30 @@ annot_data['np_bboxes'] = annot_data.apply(
 
 
 inital_amount_of_datapoints = len(annot_data['image'])
-if augment == True:
-
-    print("Init time: ", datetime.datetime.now())
-    print("Initial amount of images: ", len(annot_data['image']))
-    
-    seq = Sequence([RandomHSV(25, 25, 25), RandomRotate(180), RandomScale(0.2), RandomTranslate(0.2), RandomShear(0.2)])
-
-    def sequence(row):
-        new_img, new_bboxs = seq(
-            row['image'], row['np_bboxes'])
-        return new_img, new_bboxs
-
-    annot_data_augmented = pd.DataFrame()
-
-    for i in range(10):
-    
-        annot_data_seq = annot_data.copy()
-
-        annot_data_seq["image"], annot_data_seq["bbox"] = zip(
-            *annot_data_seq.apply(lambda row: sequence(row), axis=1))
-        annot_data_augmented = annot_data_augmented.append(annot_data_seq, ignore_index=True)
-
-    
-    annot_data = annot_data.append(annot_data_augmented, ignore_index=True)
-
-    print("Final translate time: ", datetime.datetime.now())
-
-    annot_data.drop(['np_bboxes', 'path'], axis=1, inplace=True)
-
-    print("Augmented amount of images: ", len(annot_data['image']))
-    print("Final time: ", datetime.datetime.now())
 
 
-annot_data['image'] = annot_data.apply(lambda row: row['image']/255, axis=1)
+seq = Sequence([RandomHSV(25, 25, 25), RandomRotate(180), RandomScale(0.2), RandomTranslate(0.2), RandomShear(0.2)])
 
-annot_data['target_vector'] = annot_data.apply(lambda row: calculate_iou(row['bbox']), axis=1)
+def get_augmented_image(idx):
+    img, bbox = annot_data['image'][idx].copy(), annot_data['np_bboxes'][idx].copy()
+    if random.random() > 0.2:
+        img, bbox = seq(img, bbox)
+    img = img / 255
+    target_vector = calculate_target_vector(bbox)
+    return img, target_vector
 
 #Prints dataset with bounding boxes
-image_id = 0
-for i in range(0, len(annot_data['image'])):
-    print(annot_data['bbox'][i])
-    visualization.display_bboxs(annot_data['image'][i],
-                                annot_data['bbox'][i])
+# image_id = 0
+# for i in range(0, len(annot_data['image'])):
+#     print(annot_data['bbox'][i])
+#     visualization.display_bboxs(annot_data['image'][i],
+#                                 annot_data['bbox'][i])
 
 # #Prints the target vectors bounding boxes
 # for i in range(0, len(annot_data['image'])):
 #     visualization.display_bbox_target_vector(
 #         annot_data['image'][i], annot_data['target_vector'][i], model.np_bboxs, 0.5)
 
-print(annot_data.head())
 
 annot_data = annot_data.reset_index()
 X = annot_data['image']
@@ -171,9 +145,9 @@ train_ds = AircraftDataset(X_train, y_train)
 valid_ds = AircraftDataset(X_val, y_val)
 
 train_dl = DataLoader(train_ds, batch_size=batchsize,
-                      shuffle=False, drop_last=True)
+                      shuffle=True, drop_last=True)
 valid_dl = DataLoader(valid_ds, batch_size=batchsize,
-                      shuffle=False, drop_last=True)
+                      shuffle=True, drop_last=True)
 
 
 def get_local_time() -> str:
@@ -205,7 +179,7 @@ device = torch.device('cuda' if torch.cuda.is_available()
 print("Used device: ", device)
 aircraft_model.to(device)
 
-# out = aircraft_model(torch.randn(batchsize, 3, 128, 128, device=device))
+# out = aircraft_model(torch.randn(batchsize, 3, model.IMAGE_SIZE[0], model.IMAGE_SIZE[1], device=device))
 # print("Output shape:", out.size())
 # print(f"Output logits:\n{out.detach().cpu().numpy()}")
 optimizer = optim.SGD(aircraft_model.parameters(), lr=learning_rate, weight_decay=weight_decay)

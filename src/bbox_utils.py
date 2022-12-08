@@ -5,12 +5,14 @@ import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib.patches as patches
 import skimage.io
+#import model
 
+IMAGE_SIZE = (256,256)
 
 class BBOX():
     def __init__(self, min_x: int, min_y: int, width: int, height: int):
-        self.arr = np.array([np.clip(min_x, 0, 128), np.clip(min_y, 0, 128), np.clip(
-            min_x+width, 0, 128), np.clip(min_y+height, 0, 128)])
+        self.arr = np.array([np.clip(min_x, 0, IMAGE_SIZE[0]), np.clip(min_y, 0, IMAGE_SIZE[1]), np.clip(
+            min_x+width, 0, IMAGE_SIZE[0]), np.clip(min_y+height, 0, IMAGE_SIZE[1])])
 
     def __str__(self):
         return "BBOX: % s" % (self.arr)
@@ -59,8 +61,8 @@ def display(BBOXs: list[BBOX], image_path, s, new_size, ratio):
 def get_referencepoints(im_shape, s):
     #im = cv2.imread(str(img_path))
 
-    width = 128
-    height = 128
+    width = IMAGE_SIZE[0]
+    height = IMAGE_SIZE[1]
 
     # print('Width: ', width)
     # print('Heigth: ', height)
