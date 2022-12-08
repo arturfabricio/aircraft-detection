@@ -70,8 +70,7 @@ annot_data.drop(['loc_id', 'cat_id', 'location', 'role', 'role_id', 'is_plane', 
                 'length', 'wingspan', 'area', 'faa_wingspan_class', 'Public_Train', 'Public_Test', 'partialDec', 'truncated', 'new_area', 'area_pixels', 'id'], axis=1, inplace=True)
 annot_data.rename(columns={"image_fname": "name"}, inplace=True)
 
-annot_data = annot_data.groupby(['image_id']).agg(
-    tuple).applymap(np.array).reset_index()
+annot_data = annot_data.groupby(['image_id']).agg(tuple).applymap(np.array).reset_index()
 
 if image_load_count != False:
     idxs = annot_data.index.to_list()
@@ -80,9 +79,9 @@ if image_load_count != False:
 
     annot_data.drop(delete_after, axis=0, inplace=True)
     annot_data.drop(delete_before, axis=0, inplace=True)
+    annot_data.reset_index(inplace=True)
 
-annot_data['path'] = annot_data.apply(
-    lambda row: str(train_imgs) + "/"+row['name'][0], axis=1)
+annot_data['path'] = annot_data.apply( lambda row: str(train_imgs) + "/"+row['name'][0], axis=1)
 annot_data.drop(['name', 'image_id'], axis=1, inplace=True)
 
 new_size = model.IMAGE_SIZE[0]
@@ -99,8 +98,8 @@ inital_amount_of_datapoints = len(annot_data['image'])
 
 seq = Sequence([RandomHSV(25, 25, 25), RandomRotate(180), RandomScale(0.2), RandomTranslate(0.2), RandomShear(0.2)])
 
-def get_augmented_image(idx):
-    img, bbox = annot_data['image'][idx].copy(), annot_data['np_bboxes'][idx].copy()
+def get_augmented_image(idx, image_column_df, bbox_column_df):
+    img, bbox = image_column_df[idx].copy(), bbox_column_df[idx].copy()
     if random.random() > 0.2:
         img, bbox = seq(img, bbox)
     img = img / 255
@@ -120,25 +119,20 @@ def get_augmented_image(idx):
 #         annot_data['image'][i], annot_data['target_vector'][i], model.np_bboxs, 0.5)
 
 
-annot_data = annot_data.reset_index()
-X = annot_data['image']
-Y = annot_data['target_vector']
-X_train, X_val, y_train, y_val = train_test_split(
-    X, Y, test_size=0.15, random_state=42)
+
+X_train, X_val, y_train, y_val = train_test_split(annot_data['image'], annot_data['np_bboxes'], test_size=0.15, random_state=42)
 
 
 class AircraftDataset(Dataset):
-    def __init__(self, images, y):
+    def __init__(self, images, np_bboxes):
         self.images = images.values
-        self.y = y.values
+        self.np_bboxes = np_bboxes.values
 
     def __len__(self):
         return len(self.images)
 
     def __getitem__(self, idx):
-        path = self.images[idx]
-        y = self.y[idx]
-        return path, y
+        return get_augmented_image(idx, self.images, self.np_bboxes)
 
 
 train_ds = AircraftDataset(X_train, y_train)
