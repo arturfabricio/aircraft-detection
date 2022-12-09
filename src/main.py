@@ -31,10 +31,10 @@ train_im_list = [z for z in os.listdir(train_imgs) if z.endswith('.png')]
 
 ### Hyperparameters #############
 # 10e-8 is probably too small
-learning_rate = 1e-1
+learning_rate = 10e-4
 momentum = 0.9
 batchsize = 64
-num_epochs = 2000
+num_epochs = 1500
 
 start_from_image: int = 0
 # Nr of images to load, set to False to load all
@@ -42,10 +42,13 @@ image_load_count: Union[int, bool] = False
 # Saves the model every number of epochs. Set to False to never save, or True for always
 save_every_epochs: Union[int, bool] = 2
 
+path_start_from_weights: Union[Path, bool] = False #Path(dir_root, './data/model/2022-12-09 10_04_12/model/epoch_3.pth')
+
+
 
 train_model = True
 print_logs = True
-weight_decay = 0
+weight_decay = 0.0005
 augment = True
 #################################``
 
@@ -166,7 +169,11 @@ def print_to_logs(to_print: str):
         file.write(
             f'{get_local_time()} - ' + to_print + '\n')
 
-aircraft_model = model.AircraftModel().double()
+
+
+aircraft_model = model.AircraftModel()
+if (path_start_from_weights != False):
+    aircraft_model.load_weights(path_start_from_weights)
 
 device = torch.device('cuda' if torch.cuda.is_available()
                       else 'cpu')  # use cuda or cpu
@@ -179,7 +186,6 @@ aircraft_model.to(device)
 optimizer = optim.SGD(aircraft_model.parameters(), lr=learning_rate, weight_decay=weight_decay)
 
 convert_tensor = transforms.ToTensor()
-aircraft_model.train()
 
 train_accuracies = []
 valid_accuracies = []
@@ -209,6 +215,8 @@ is_set = False
 unique_x = None
 
 for epoch in range(num_epochs):
+    
+    aircraft_model.train()
     print_to_logs("Epoch number: " + str(epoch))
 
     train_losses = []
@@ -221,19 +229,8 @@ for epoch in range(num_epochs):
         # zero the parameter gradients
         optimizer.zero_grad()
 
-        # if not is_set:
-        #     unique_x = inputs.clone()
-        #     is_set = True
-        # lets_print = torch.equal(unique_x, inputs)
-
-        # if lets_print:
-        #     print('input', inputs)
-        #     print('targets', targets)
-
         # forward + backward + optimize
         output = aircraft_model(inputs)
-        # if lets_print:
-        #     print('output', output)
         loss = loss_fn(output, targets)
         loss.backward()
         optimizer.step()
@@ -251,8 +248,6 @@ for epoch in range(num_epochs):
             loss = loss_fn(output, targets)
 
             val_losses.append(loss.item())
-
-        aircraft_model.train()
 
     #print("train_losses", train_losses)
 

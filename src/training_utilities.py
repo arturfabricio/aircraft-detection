@@ -6,7 +6,7 @@ import model
 pos_weight = torch.ones([len(model.bboxs)])  # All weights are equal to 1
 criterion = torch.nn.BCEWithLogitsLoss(pos_weight=pos_weight)
 
-l1_loss_func = nn.L1Loss()
+l1_loss_func = nn.L1Loss(reduction='sum')
 
 # Target 0, 1
 # Output 0, 1
@@ -14,11 +14,11 @@ l1_loss_func = nn.L1Loss()
 
 
 def loss_fn(output, target):
-    plane_count = torch.sum(target)
+    plane_count = torch.sum(target) # 10
     if plane_count == 0:
         plane_count = torch.tensor(1)
-    l1_loss = l1_loss_func(output, target)
-    LM_CONSTANT = (1/l1_loss)*0.5
+    l1_loss = l1_loss_func(output, target) # wrong bounding boxes + not predicted planes
+    LM_CONSTANT = (1/l1_loss)*0.4
     loss = l1_loss + (torch.sum(torch.clamp(target - output, min=0, max=1)) / plane_count)*LM_CONSTANT
     return loss
     # return nn.BCELoss()(output, target)

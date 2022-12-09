@@ -4,7 +4,7 @@
 #BSUB -J airJob
 #BSUB -n 1
 #BSUB -W 24:00
-#BSUB -R "rusage[mem=184GB]"
+#BSUB -R "rusage[mem=16GB]"
 #BSUB -o logs/%J.out
 #BSUB -e logs/%J.err
 #BSUB -u s183685@student.dtu.dk

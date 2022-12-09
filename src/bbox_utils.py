@@ -7,7 +7,7 @@ import matplotlib.patches as patches
 import skimage.io
 #import model
 
-IMAGE_SIZE = (256,256)
+IMAGE_SIZE = (200,200)
 
 class BBOX():
     def __init__(self, min_x: int, min_y: int, width: int, height: int):
