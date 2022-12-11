@@ -1,5 +1,6 @@
 
 #Generate key
+#save as "id_rsa_HPC"
 ssh-keygen
 
 Change config
