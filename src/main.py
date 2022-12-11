@@ -1,3 +1,5 @@
+print('You got the newst, all good v3')
+
 from time import localtime, strftime
 import os
 import json
@@ -25,20 +27,19 @@ from training_utilities import loss_fn, calculate_target_vector
 warnings.simplefilter(action='ignore', category=FutureWarning)
 dir_root = Path(__file__).parent.parent
 train_imgs = Path(dir_root, './data/train')
-annot_dir = Path(dir_root, './data/annot/rareplanes.json')
+annot_dir = Path(dir_root, './data/annot/rareplanes_train.json')
 train_im_list = [z for z in os.listdir(train_imgs) if z.endswith('.png')]
-
 
 ### Hyperparameters #############
 # 10e-8 is probably too small
-learning_rate = 10e-4
+learning_rate = 10e-6
 momentum = 0.9
-batchsize = 64
+batchsize = 2
 num_epochs = 1500
 
 start_from_image: int = 0
 # Nr of images to load, set to False to load all
-image_load_count: Union[int, bool] = False
+image_load_count: Union[int, bool] = 4
 # Saves the model every number of epochs. Set to False to never save, or True for always
 save_every_epochs: Union[int, bool] = 2
 
@@ -163,6 +164,9 @@ model_directory.mkdir(parents=True, exist_ok=True)
 LOG_PATH = Path(
     model_directory, f'./logs.log')
 
+# Create logging file
+with open(LOG_PATH, 'w') as fp:
+    pass
 
 def print_to_logs(to_print: str):
     with open(LOG_PATH, 'a') as file:
@@ -208,8 +212,6 @@ if print_logs == True:
 
     with open(PATH_HYPER, 'w') as f:
         json.dump(data_to_file, f, sort_keys=True, indent=4)
-
-import torch.nn as nn
 
 is_set = False
 unique_x = None

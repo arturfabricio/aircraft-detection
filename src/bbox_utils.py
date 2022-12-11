@@ -5,9 +5,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib.patches as patches
 import skimage.io
+from typing import List
 #import model
 
-IMAGE_SIZE = (200,200)
+IMAGE_SIZE = (256,256)
 
 class BBOX():
     def __init__(self, min_x: int, min_y: int, width: int, height: int):
@@ -25,7 +26,7 @@ def contains(list, filter):
     return False
 
 
-def generate(s, bbox_count, max_size, im_shape) -> list[BBOX]:
+def generate(s, bbox_count, max_size, im_shape) -> List[BBOX]:
     scaling = 1.0/s+2
 
     bbox_final = []
@@ -45,7 +46,7 @@ def generate(s, bbox_count, max_size, im_shape) -> list[BBOX]:
     return bbox_final
 
 
-def display(BBOXs: list[BBOX], image_path, s, new_size, ratio):
+def display(BBOXs: List[BBOX], image_path, s, new_size, ratio):
     im = transformsXY_im(image_path, new_size)
     fig, ax = plt.subplots()
     ax.imshow(im)

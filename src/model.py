@@ -18,64 +18,73 @@ class AircraftModel(nn.Module):
         # image_size = floor(((image_dim_x-kernal_size+1)/conv_stride)/max_pool_kernal)
         # channels = image_size*conv_out*2
 
-        self.name = "Our Yolo v3"
+        self.name = "Our Yolo v4"
         self.conv = nn.Sequential(
-            # 3 | 200
+            # 3 | 256
             nn.Conv2d(3, 32, kernel_size=7),
             nn.BatchNorm2d(32), 
             nn.MaxPool2d(kernel_size=2),
             nn.LeakyReLU(0.1),
 
-            # 32 | 96
+            # 32 | 125
 
             nn.Conv2d(32, 64, kernel_size=5),
             nn.BatchNorm2d(64),
             nn.MaxPool2d(kernel_size=2),
             nn.LeakyReLU(0.1),
 
-            # 64 | 46
+            # 64 | 60
 
             nn.Conv2d(64, 128, kernel_size=3),
             nn.BatchNorm2d(128),
+            nn.MaxPool2d(kernel_size=2),
             nn.LeakyReLU(0.1),
 
-            # # 128 | 44
+            # # 128 | 29
 
             nn.Conv2d(128, 256, kernel_size=3),
             nn.BatchNorm2d(256),
             nn.MaxPool2d(kernel_size=2),
             nn.LeakyReLU(0.1),
 
-            # # 256 | 21
+            # # 256 | 14
 
             nn.Conv2d(256, 512, kernel_size=3),
             nn.BatchNorm2d(512),
             nn.LeakyReLU(0.1),
 
-            # # 512 | 19
+            # # 512 | 12
 
             nn.Conv2d(512, 512, kernel_size=3),
             nn.BatchNorm2d(512),
-            nn.MaxPool2d(kernel_size=2),
+            nn.LeakyReLU(0.1),
+
+            # # 512 | 10
+
+            nn.Conv2d(512, 512, kernel_size=3),
+            nn.BatchNorm2d(512),
             nn.LeakyReLU(0.1),
 
             # # 512 | 8
 
             nn.Conv2d(512, 512, kernel_size=3),
             nn.BatchNorm2d(512),
-            nn.MaxPool2d(kernel_size=2),
             nn.LeakyReLU(0.1),
 
             # # 512 | 6
 
+            nn.Conv2d(512, 512, kernel_size=3),
+            nn.BatchNorm2d(512),
+            nn.LeakyReLU(0.1),
+
             nn.Flatten(start_dim=1),
-            # nn.Dropout(0.5)
         )
 
         self.connected = nn.Sequential(
             nn.Linear(in_features=4608, out_features=4096, bias=False),
             nn.BatchNorm1d(4096),
             nn.LeakyReLU(0.1),
+            nn.Dropout(0.5),
             nn.Linear(in_features=4096, out_features=len(bboxs), bias=False),
         )
 
@@ -92,6 +101,8 @@ class AircraftModel(nn.Module):
             elif class_name == 'LeakyReLU':
                 return nn.init.calculate_gain('leaky_relu', layer.negative_slope)
             elif class_name == 'MaxPool2d':
+                return 1
+            elif class_name == 'Dropout':
                 return 1
             else:
                 raise Exception(f'Unsuported layer "{class_name}"')
