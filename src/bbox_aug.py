@@ -1,6 +1,7 @@
 import cv2 
 import numpy as np
 
+
 def draw_rect(im, cords, color = None):
     """Draw the rectangle on the image
     
@@ -36,7 +37,7 @@ def draw_rect(im, cords, color = None):
         pt1 = int(pt1[0]), int(pt1[1])
         pt2 = int(pt2[0]), int(pt2[1])
     
-        im = cv2.rectangle(im.copy(), pt1, pt2, color) #,int(max(im.shape[:2])/200))
+        im = cv2.rectangle(im.copy(), pt1, pt2, color, int(max(im.shape[:2])/200))
     return im
 
 def bbox_area(bbox):
@@ -86,6 +87,7 @@ def clip_box(bbox, clip_box, alpha):
 
 
     return bbox
+
 
 def rotate_im(image, angle):
     """Rotate the image.
@@ -231,6 +233,7 @@ def rotate_box(corners,angle,  cx, cy, h, w):
     
     return calculated
 
+
 def get_enclosing_box(corners):
     """Get an enclosing box for ratated corners of a bounding box
     
@@ -261,6 +264,7 @@ def get_enclosing_box(corners):
     final = np.hstack((xmin, ymin, xmax, ymax,corners[:,8:]))
     
     return final
+
 
 def letterbox_image(img, inp_dim):
     '''resize image with unchanged aspect ratio using padding

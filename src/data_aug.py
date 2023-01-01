@@ -9,6 +9,7 @@ from bbox_aug import *
 lib_path = os.path.join(os.path.realpath("."), "data_aug")
 sys.path.append(lib_path)
 
+
 class RandomHorizontalFlip(object):
 
     """Randomly horizontally flips the Image with the probability *p*
@@ -48,6 +49,7 @@ class RandomHorizontalFlip(object):
 
             return img, bboxes
 
+
 class HorizontalFlip(object):
 
     """Randomly horizontally flips the Image with the probability *p*
@@ -86,6 +88,7 @@ class HorizontalFlip(object):
         bboxes[:, 2] += box_w
 
         return img, bboxes
+
 
 class RandomScale(object):
     """Randomly scales an image    
@@ -170,6 +173,7 @@ class RandomScale(object):
         #print("img", img)
         return img, bboxes
 
+
 class Scale(object):
     """Scales the image    
         
@@ -233,6 +237,7 @@ class Scale(object):
 
     
         return img, bboxes  
+    
 
 class RandomTranslate(object):
     """Randomly Translates the image    
@@ -320,6 +325,7 @@ class RandomTranslate(object):
         
         return img, bboxes
     
+
 class Translate(object):
     """Randomly Translates the image    
     
@@ -397,6 +403,7 @@ class Translate(object):
         
         return img, bboxes
     
+    
 class RandomRotate(object):
     """Randomly rotates an image    
     
@@ -466,7 +473,8 @@ class RandomRotate(object):
         bboxes = clip_box(bboxes, [0,0,w, h], 0.25)
     
         return img, bboxes
-  
+
+    
 class Rotate(object):
     """Rotates an image    
     
@@ -543,6 +551,8 @@ class Rotate(object):
         
         return img, bboxes
         
+
+
 class RandomShear(object):
     """Randomly shears an image in horizontal direction   
     
@@ -713,6 +723,7 @@ class Resize(object):
     
         return img, bboxes 
     
+
 class RandomHSV(object):
     """HSV Transform to vary hue saturation and brightness
     
