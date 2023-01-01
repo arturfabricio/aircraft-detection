@@ -50,19 +50,19 @@ class RareplanesDataset(Dataset):
         return sample
 
     @staticmethod
-    def custom_collate(batch):
+    def collate_fn(batch):
         image = [sample['image'] for sample in batch]
         image = torch.stack(image)
 
         has_plane = [sample['has_plane'] for sample in batch]
         has_plane = torch.tensor(has_plane, dtype=torch.float32).unsqueeze(dim=1)
 
-        bboxs = [torch.tensor(sample['bboxs']) for sample in batch]
-        bboxs = pad_sequence(bboxs, batch_first=True)
+        # bboxs = [torch.tensor(sample['bboxs']) for sample in batch]
+        # bboxs = pad_sequence(bboxs, batch_first=True)
 
         return {
             'image': image,
-            'bboxs': bboxs,
+            # 'bboxs': bboxs,
             'has_plane': has_plane
         }
 
